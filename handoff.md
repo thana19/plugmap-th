@@ -4,7 +4,7 @@
 
 ## สถานะปัจจุบัน
 
-MVP ขึ้นครบทั้ง UAT และ PRD · UAT มีข้อมูล 3,007 จุดแล้ว · **PRD ยังว่าง 0 จุด** รอพี่หนุ่มตั้ง TEAM_PIN production + sync ครั้งแรก
+MVP + Hub filter + Bookmark + ค้นหา ขึ้นครบทั้ง UAT และ PRD · ทั้งสอง env มีข้อมูล 3,007 จุด (PRD sync ครั้งแรก 2026-10-26 11:25) · ตั้ง TEAM_PIN ครบทั้งสอง env แล้ว · git ล่าสุด `0c8be6b` (push แล้ว)
 
 | Env | URL | Worker | D1 |
 |---|---|---|---|
@@ -61,7 +61,6 @@ MVP ขึ้นครบทั้ง UAT และ PRD · UAT มีข้อ�
 
 ## Known gaps (จาก TESTING.md)
 
-- PRD ยังไม่มี TEAM_PIN / ข้อมูล
 - ยังไม่ได้ทดสอบ: บันทึก Bookmark จริงด้วย PIN · บันทึกเพิ่ม/แก้/ลบจริง · ปุ่มแชร์บนมือถือจริง · ปฏิเสธ GPS · กดค้างบนแผนที่บนมือถือจริง · ติดตั้ง PWA · cron ตี 2
 - KML ไม่มี id คงที่ -> ผู้เขียนขยับ/เปลี่ยนชื่อหมุดแล้ว override กำพร้า (ยังไม่มีหน้า admin)
 - มีเฉพาะจุด DC · kW มีราว 54%
@@ -69,13 +68,13 @@ MVP ขึ้นครบทั้ง UAT และ PRD · UAT มีข้อ�
 ## Artifacts อ้างอิง
 
 - แผนหลัก: `~/.claude/plans/explore-quirky-finch.md`
-- HTML plan: `html-plan/ev-charger-plan-2026-10-26_*.html`
+- HTML plan: `html-plan/ev-charger-plan-2026-10-26_*.html` · `html-plan/ev-charger-bookmark-2026-10-26_1445.html` · `html-plan/ev-charger-search-2026-10-26_1450.html`
 - ข้อมูลดิบ spike (ไม่ commit): `spike/`
 - โลโก้ + ที่มา: `public/logos/logos.json`
 
 ## Next steps
 
-ดู `plan.md` — ตั้ง PIN PRD + sync · ทดสอบมือถือจริง · ตรวจ cron · Phase 2
+ดู `plan.md` — (1) พี่หนุ่มทดสอบ Bookmark ด้วย PIN จริงบนมือถือ (2) ตรวจ cron ตี 2 คืนแรก (`SELECT MAX(updated_at)` บน D1 PRD) (3) ทดสอบมือถือจริงที่เหลือ (Known gaps) (4) ตัวเลือก: `fitBounds` ไปที่ Hub ตอนเปิดตัวกรอง (5) Phase 2 · แนะนำเปลี่ยน TEAM_PIN ถ้าภาพหน้าจอที่มี PIN ถูกส่งต่อ
 
 ## Suggested Skills (session ถัดไป)
 
