@@ -136,3 +136,13 @@ Pending:
 - พี่หนุ่มตั้ง TEAM_PIN production + sync ครั้งแรก
 - ทดสอบเพิ่ม/แก้/ลบจริงบนมือถือ
 - cron ตี 2 คืนแรก
+
+## [2026-10-26 11:28] PRD first sync
+
+| ทดสอบ | ผล |
+|---|---|
+| พี่หนุ่มตั้ง TEAM_PIN production + `POST /api/admin/sync` | ✅ |
+| D1 `ev-charger-prd` | ✅ 3,007 จุด `mymaps` (updated 2026-10-26T04:25Z) |
+| bbox กรุงเทพ บน ev.thana.in.th | ✅ 61 จุด (dc 57 / ac 3 / unknown 1) ตรงกับ UAT |
+
+หมายเหตุ: เบราว์เซอร์ในเครื่องมิกะยังเปิด ev.thana.in.th ไม่ได้ (ERR_NAME_NOT_RESOLVED — DNS cache ค่าเก่าจากตอนผูกโดเมนไม่สำเร็จ) · เช็คผ่าน 1.1.1.1 แล้วปกติ → ยังไม่ได้ทดสอบ UI บน PRD ด้วยตา
