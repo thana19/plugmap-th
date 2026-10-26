@@ -61,3 +61,10 @@ export function normalizeProvider(raw: string | null | undefined): NormalizedOpe
 export function slugForOperator(operator: string | null | undefined): string | null {
   return lookupOperator(operator)?.slug ?? null;
 }
+
+const HUB_RE = /\bhub\b|\(ฮับ\)|ฮับสถานี/i;
+
+/** สถานีชาร์จขนาดใหญ่ (Hub) — ดูจากชื่อ (หลัง override) หรือ name_en */
+export function isHub(name: string | null | undefined, nameEn: string | null | undefined): boolean {
+  return HUB_RE.test(name ?? "") || HUB_RE.test(nameEn ?? "");
+}

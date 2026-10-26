@@ -2,7 +2,7 @@
 // request ที่ไม่ตรงไฟล์ใน public/ ตกมาที่นี่
 
 import { checkPin, clientIp, consumeWriteQuota } from "./auth";
-import { lookupOperator, normalizeProvider, slugForOperator } from "./normalize";
+import { isHub, lookupOperator, normalizeProvider, slugForOperator } from "./normalize";
 import { classifySpeed, type Connector, type SpeedClass } from "./speed";
 import { syncMyMaps } from "./sync/mymaps";
 
@@ -44,6 +44,7 @@ export interface StationDto {
   lng: number;
   connectors: Connector[];
   speed: SpeedClass;
+  hub: boolean;
   edited: boolean;
 }
 
@@ -71,14 +72,15 @@ function parseConnectorsJson(s: string | null | undefined): Connector[] {
   }
 }
 
-/** merge override (ฟิลด์ที่ไม่ null ทับของเดิม) แล้วแนบ operator_slug + speed */
+/** merge override (ฟิลด์ที่ไม่ null ทับของเดิม) แล้วแนบ operator_slug + speed + hub */
 export function toDto(r: StationRow): StationDto {
   const operator = r.ov_operator ?? r.operator ?? "ไม่ระบุ";
   const connectors = r.ov_connectors_json != null ? parseConnectorsJson(r.ov_connectors_json) : parseConnectorsJson(r.connectors_json);
+  const name = r.ov_name ?? r.name;
   return {
     id: r.id,
     source: r.source,
-    name: r.ov_name ?? r.name,
+    name,
     name_en: r.name_en,
     address: r.address,
     hours: r.hours,
@@ -88,6 +90,7 @@ export function toDto(r: StationRow): StationDto {
     lng: r.lng,
     connectors,
     speed: classifySpeed(connectors),
+    hub: isHub(name, r.name_en),
     edited: r.ov_edited_at != null,
   };
 }
@@ -145,25 +148,48 @@ async function guardWrite(request: Request, env: Env): Promise<Response | null> 
 // ---------- handlers ----------
 
 async function listStations(url: URL, env: Env): Promise<Response> {
-  const parts = (url.searchParams.get("bbox") ?? "").split(",").map((p) => (p.trim() === "" ? NaN : Number(p)));
-  if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return err(400, "bbox=minLng,minLat,maxLng,maxLat required");
-  const [minLng, minLat, maxLng, maxLat] = parts;
-  if (minLng >= maxLng || minLat >= maxLat || Math.abs(minLat) > 90 || Math.abs(maxLat) > 90 || Math.abs(minLng) > 180 || Math.abs(maxLng) > 180) {
-    return err(400, "invalid bbox");
+  const hubOnly = url.searchParams.get("hub") === "1";
+  const bboxParam = url.searchParams.get("bbox");
+  let bb: number[] | null = null;
+  if (bboxParam !== null || !hubOnly) {
+    const parts = (bboxParam ?? "").split(",").map((p) => (p.trim() === "" ? NaN : Number(p)));
+    if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return err(400, "bbox=minLng,minLat,maxLng,maxLat required");
+    const [minLng, minLat, maxLng, maxLat] = parts;
+    if (minLng >= maxLng || minLat >= maxLat || Math.abs(minLat) > 90 || Math.abs(maxLat) > 90 || Math.abs(minLng) > 180 || Math.abs(maxLng) > 180) {
+      return err(400, "invalid bbox");
+    }
+    bb = parts;
   }
-  const cLat = (minLat + maxLat) / 2;
-  const cLng = (minLng + maxLng) / 2;
+  const where = ["s.deleted = 0"];
+  const binds: unknown[] = [];
+  if (bb) {
+    const [minLng, minLat, maxLng, maxLat] = bb;
+    where.push("s.lat BETWEEN ? AND ? AND s.lng BETWEEN ? AND ?");
+    binds.push(minLat, maxLat, minLng, maxLng);
+  }
+  if (hubOnly) {
+    // pre-filter ด้วย LIKE (กันสแกน JS ทั้งตาราง) แล้วค่อยตัดสินจริงด้วย isHub
+    const cols = ["s.name", "s.name_en", "o.name"];
+    where.push("(" + cols.flatMap((c) => [`${c} LIKE '%hub%'`, `${c} LIKE '%ฮับ%'`]).join(" OR ") + ")");
+  }
+  let order = "";
+  if (bb) {
+    const cLat = (bb[1] + bb[3]) / 2;
+    const cLng = (bb[0] + bb[2]) / 2;
+    order = "ORDER BY ((s.lat - ?) * (s.lat - ?) + (s.lng - ?) * (s.lng - ?)) ASC";
+    binds.push(cLat, cLat, cLng, cLng);
+  } else order = "ORDER BY s.id";
+  // hub: LIMIT หลัง filter ใน JS ไม่ได้ → ดึงทั้งหมดที่ผ่าน LIKE (หลักสิบ) แล้วตัดทีหลัง
+  const limit = hubOnly ? "" : "LIMIT ?";
+  if (!hubOnly) binds.push(MAX_BBOX_RESULTS + 1);
   const { results } = await env.DB
-    .prepare(
-      `${SELECT_STATION}
-       WHERE s.deleted = 0 AND s.lat BETWEEN ? AND ? AND s.lng BETWEEN ? AND ?
-       ORDER BY ((s.lat - ?) * (s.lat - ?) + (s.lng - ?) * (s.lng - ?)) ASC
-       LIMIT ?`,
-    )
-    .bind(minLat, maxLat, minLng, maxLng, cLat, cLat, cLng, cLng, MAX_BBOX_RESULTS + 1)
+    .prepare(`${SELECT_STATION} WHERE ${where.join(" AND ")} ${order} ${limit}`)
+    .bind(...binds)
     .all<StationRow>();
-  const truncated = results.length > MAX_BBOX_RESULTS;
-  const stations = results.slice(0, MAX_BBOX_RESULTS).map(toDto);
+  let dtos = results.map(toDto);
+  if (hubOnly) dtos = dtos.filter((d) => d.hub);
+  const truncated = dtos.length > MAX_BBOX_RESULTS;
+  const stations = dtos.slice(0, MAX_BBOX_RESULTS);
   return json({ stations, count: stations.length, truncated });
 }
 

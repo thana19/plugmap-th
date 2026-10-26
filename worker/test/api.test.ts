@@ -292,3 +292,36 @@ describe("sync", () => {
 });
 
 void PIN;
+
+describe("hub filter", () => {
+  const HUB: KmlStation = { name: "HUB สถานีไฟฟ้าขอนแก่น", lat: 16.4, lng: 102.8, provider: "PEA", description: "CCS2: 50 kW" };
+  const HAPPY: KmlStation = { name: "แฮปปี้ฮับ สปอร์ต แอนด์ รีครีเอชั่น", lat: 13.76, lng: 100.51, provider: "PTT", description: "CCS2" };
+
+  it("hub=1 ไม่ต้องมี bbox คืนเฉพาะ hub ทั่วประเทศ", async () => {
+    await sync(kmlOf([A, HUB, HAPPY]));
+    const res = await call(req("/api/stations?hub=1"));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { stations: Array<Record<string, any>>; count: number; truncated: boolean };
+    expect(body.count).toBe(1);
+    expect(body.truncated).toBe(false);
+    expect(body.stations[0]).toMatchObject({ name: HUB.name, hub: true });
+  });
+
+  it("hub=1 + bbox จำกัดตามกรอบ", async () => {
+    await sync(kmlOf([HUB, { ...HUB, name: "PTT (ฮับ)", lat: 13.8, lng: 100.5 }]));
+    const res = await call(req(`/api/stations?hub=1&bbox=${BKK}`));
+    const body = (await res.json()) as { stations: Array<Record<string, any>> };
+    expect(body.stations.map((s) => s.name)).toEqual(["PTT (ฮับ)"]);
+  });
+
+  it("ไม่มี hub และไม่มี bbox ยัง 400", async () => {
+    expect((await call(req("/api/stations"))).status).toBe(400);
+  });
+
+  it("ผลแบบ bbox มี field hub", async () => {
+    await sync(kmlOf([A, HAPPY]));
+    const { stations } = await list();
+    expect(stations).toHaveLength(2);
+    expect(stations.every((s) => s.hub === false)).toBe(true);
+  });
+});

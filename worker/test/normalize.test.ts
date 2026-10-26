@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeProvider, OPERATOR_SLUGS, slugForOperator } from "../src/normalize";
+import { isHub, normalizeProvider, OPERATOR_SLUGS, slugForOperator } from "../src/normalize";
 
 const TABLE: Array<[string, string, string]> = [
   ["PTT", "PTT EV Station PluZ", "ptt"],
@@ -52,4 +52,18 @@ describe("slugForOperator (ชื่อมาตรฐานที่เก็�
     expect(slugForOperator("ไม่ระบุ")).toBeNull();
     expect(slugForOperator(null)).toBeNull();
   });
+});
+
+describe("isHub", () => {
+  it.each([
+    ["ปตท สระบุรี (ฮับ)", null],
+    ["x", "PTT Saraburi (HUB)"],
+    ["HUB สถานีไฟฟ้าขอนแก่น", null],
+    ["ฮับสถานีชาร์จยานยนต์ไฟฟ้า เมืองประจวบฯ", null],
+  ])("match %s", (n, en) => expect(isHub(n, en)).toBe(true));
+  it.each([
+    ["BigC Market Khubon", null],
+    ["แฮปปี้ฮับ สปอร์ต แอนด์ รีครีเอชั่น", null],
+    ["สถานี A", null],
+  ])("ไม่ match %s", (n, en) => expect(isHub(n, en)).toBe(false));
 });

@@ -1,6 +1,6 @@
 # handoff.md — EV-Charger Map
 
-อัปเดตล่าสุด: 2026-10-26 11:20
+อัปเดตล่าสุด: 2026-10-26 14:30
 
 ## สถานะปัจจุบัน
 
@@ -22,7 +22,7 @@ MVP ขึ้นครบทั้ง UAT และ PRD · UAT มีข้อ�
 
 ## Features (MVP)
 
-แผนที่ Leaflet + GPS · โหลดตาม bbox · หมุดโลโก้ยี่ห้อ + สีขอบตามความเร็ว + cluster · แผงข้อมูล/นำทาง/แชร์ · ตัวกรอง · เพิ่ม/แก้/ลบ (soft delete) ด้วย Team PIN · PWA · nightly sync
+แผนที่ Leaflet + GPS · โหลดตาม bbox · หมุดโลโก้ยี่ห้อ + สีขอบตามความเร็ว + cluster · แผงข้อมูล/นำทาง/แชร์ · ตัวกรอง (รวม Hub) · เพิ่ม/แก้/ลบ (soft delete) ด้วย Team PIN · PWA · nightly sync
 
 ## Decisions
 
@@ -37,6 +37,15 @@ MVP ขึ้นครบทั้ง UAT และ PRD · UAT มีข้อ�
 - 2026-10-26 10:52 UAT · 10:58 sync 3,007 จุด
 - 2026-10-26 11:06 PRD ครั้งแรกล้มเหลว (error 100117 DNS record `ev` เดิมค้าง) · 11:16 ลบ record แล้ว deploy ซ้ำสำเร็จ
 - รายละเอียดเต็ม: `TESTING.md` หัวข้อ `[2026-10-26 11:20] PRD deploy`
+- 2026-10-26 13:25 UAT Hub filter (version e1418561) · 14:30 PRD (version 0c859fed) -> `TESTING.md` หัวข้อ `Hub filter`
+
+## Hub filter (2026-10-26)
+
+- Hub = ชื่อ/`name_en` ตรง `/\bhub\b|\(ฮับ\)|ฮับสถานี/i` (`isHub` ใน `worker/src/normalize.ts`) · ตอนนี้ 12 จุด
+- API: ทุก station มี `hub: boolean` · `GET /api/stations?hub=1` คืน Hub ทั้งประเทศ (bbox ใส่หรือไม่ก็ได้)
+- Frontend: ตัวกรองหมวด "ประเภทสถานี" chip Hub · โหมด Hub ไม่สนซูมขั้นต่ำ · bottom sheet มีป้าย "Hub" · sw cache `ev-shell-v2` · ทดสอบ 96/96
+- commit: ดู `git log` (feat: hub filter)
+- ปัญหาเล็กที่ทราบ: (1) แถบสถานะขึ้น "พบ Hub 0 จุด" ชั่วครู่ก่อนโหลดเสร็จ (2) เปิด Hub ตอนซูมอยู่ในกรุงเทพจะไม่เห็นอะไรจนกว่าจะซูมออก — ปรับปรุงได้: `fitBounds` ไปที่ Hub ทั้งหมดตอนเปิด
 
 ## Known gaps (จาก TESTING.md)
 

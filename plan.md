@@ -1,6 +1,6 @@
 # plan.md — EV-Charger Map
 
-อัปเดตล่าสุด: 2026-10-26 11:20
+อัปเดตล่าสุด: 2026-10-26 14:30
 
 ## ทำแล้ว
 
@@ -13,6 +13,8 @@
 | 2026-10-26 10:58 | UAT https://ev-uat.thana.in.th พร้อม sync 3,007 จุด |
 | 2026-10-26 11:16 | PRD https://ev.thana.in.th ขึ้น (หลังพี่หนุ่มลบ DNS record `ev` เดิม) |
 | 2026-10-26 11:2x | git push -> github.com/thana19/plugmap-th (public) |
+| 2026-10-26 13:25 | Hub filter (ตัวกรอง "ประเภทสถานี" + `?hub=1`) ทดสอบ 96/96 · UAT ผ่าน |
+| 2026-10-26 14:30 | Hub filter deploy PRD (version 0c859fed) · `?hub=1` = 12 จุด |
 
 ## ขั้นต่อไป
 

@@ -120,7 +120,8 @@ Parse จาก KML `Description` (ข้อความอิสระ) เป�
 
 | Endpoint | หมายเหตุ |
 |---|---|
-| `GET /api/stations?bbox=minLng,minLat,maxLng,maxLat` | max 500 จุด, merge override, ซ่อนจุด `deleted=1` · ทุก station ใน response มี `operator_slug` (null ถ้า Provider ไม่ match alias) คู่กับ `speed` |
+| `GET /api/stations?bbox=minLng,minLat,maxLng,maxLat` | max 500 จุด, merge override, ซ่อนจุด `deleted=1` · ทุก station ใน response มี `operator_slug` (null ถ้า Provider ไม่ match alias) คู่กับ `speed` · มี field `hub` (boolean) ทุกจุด — Hub = ชื่อ/`name_en` ตรง `/\bhub\b|\(ฮับ\)|ฮับสถานี/i` (`isHub`) |
+| `GET /api/stations?hub=1` | คืน Hub ทั่วประเทศ (ปัจจุบัน 12 จุด) ไม่ต้องมี bbox · ถ้าส่ง bbox มาด้วยจะจำกัดเฉพาะในกรอบ |
 | `GET /api/stations/:id` | |
 | `POST /api/stations` | ต้อง PIN |
 | `PATCH /api/stations/:id` | ต้อง PIN, เขียน override |
@@ -132,6 +133,7 @@ Parse จาก KML `Description` (ข้อความอิสระ) เป�
 - static `public/` (`index.html`, `app.js`, `styles.css`, `manifest.json`, `sw.js`) vanilla JS + Leaflet 1.9.4 จาก cdnjs + Leaflet.markercluster
 - โหลดใหม่เมื่อ `moveend` (debounce 300ms)
 - หมุดโลโก้ยี่ห้อ ขอบสีตาม Speed class — ดูหัวข้อ "Markers & logos" ข้างล่าง
+- ตัวกรองมีหมวด "ประเภทสถานี" chip "Hub (สถานีชาร์จขนาดใหญ่)" — เปิดแล้วโหลด `?hub=1` โดยไม่สนระดับซูมขั้นต่ำ · bottom sheet แสดงป้าย "Hub"
 - ลิงก์นำทาง `https://www.google.com/maps/dir/?api=1&destination=LAT%2CLNG&travelmode=driving`
 - แชร์ด้วย Web Share API, fallback copy ลิงก์
 - ปุ่มลบแสดงเฉพาะจุด source `user`

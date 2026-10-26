@@ -208,7 +208,7 @@
       iconSize: [36, 36], iconAnchor: [18, 44],
     });
   }
-  const sigOf = (st) => JSON.stringify([st.name, st.operator, st.connectors, st.speed, st.address, st.hours, st.edited]);
+  const sigOf = (st) => JSON.stringify([st.hub, st.name, st.operator, st.connectors, st.speed, st.address, st.hours, st.edited]);
 
   function upsertMarker(st) {
     const sig = sigOf(st);
@@ -236,11 +236,12 @@
 
   // ---------- filters ----------
   const filters = (() => {
-    try { return Object.assign({ ops: [], types: [], minKw: 0 }, JSON.parse(store.get("ev_filters") || "{}")); }
-    catch { return { ops: [], types: [], minKw: 0 }; }
+    try { return Object.assign({ ops: [], types: [], minKw: 0, hub: false }, JSON.parse(store.get("ev_filters") || "{}")); }
+    catch { return { ops: [], types: [], minKw: 0, hub: false }; }
   })();
-  const filterActive = () => (filters.ops.length ? 1 : 0) + (filters.types.length ? 1 : 0) + (filters.minKw ? 1 : 0);
+  const filterActive = () => (filters.ops.length ? 1 : 0) + (filters.types.length ? 1 : 0) + (filters.minKw ? 1 : 0) + (filters.hub ? 1 : 0);
   function passes(st) {
+    if (filters.hub && !st.hub) return false;
     if (filters.ops.length && !filters.ops.includes(st.operator_slug || "_other")) return false;
     if (filters.types.length && !st.connectors.some((c) => filters.types.includes(c.type))) return false;
     if (filters.minKw && maxKw(st) < filters.minKw) return false;
@@ -275,12 +276,14 @@
     const kwSel = h("select", { "aria-label": "kW ขั้นต่ำ", onchange: (e) => { filters.minKw = Number(e.target.value); applyFilters(); } },
       [[0, "ทุกกำลังไฟ"], [7, "7 kW ขึ้นไป"], [22, "22 kW ขึ้นไป"], [50, "50 kW ขึ้นไป (DC เร็ว)"], [100, "100 kW ขึ้นไป"], [150, "150 kW ขึ้นไป"]]
         .map(([v, t]) => h("option", { value: v, selected: filters.minKw === v }, t)));
+    const hubChip = chip("Hub (สถานีชาร์จขนาดใหญ่)", !!filters.hub, () => { filters.hub = !filters.hub; loadViewport(); });
     panel.append(
+      h("h3", { text: "ประเภทสถานี" }), h("div", { class: "chips" }, [hubChip]),
       h("h3", { text: "ยี่ห้อ" }), h("div", { class: "chips" }, opChips),
       h("h3", { text: "ชนิดหัวชาร์จ" }), h("div", { class: "chips" }, typeChips),
       h("h3", { text: "กำลังไฟขั้นต่ำ" }), kwSel,
       h("div", { class: "filter-actions" },
-        h("button", { type: "button", class: "btn", text: "ล้างตัวกรอง", onclick: () => { filters.ops = []; filters.types = []; filters.minKw = 0; applyFilters(); buildFilterPanel(); } }),
+        h("button", { type: "button", class: "btn", text: "ล้างตัวกรอง", onclick: () => { filters.ops = []; filters.types = []; filters.minKw = 0; filters.hub = false; applyFilters(); buildFilterPanel(); loadViewport(); } }),
         h("button", { type: "button", class: "btn primary", text: "ปิด", onclick: () => toggleFilter(false) })),
     );
   }
@@ -297,6 +300,11 @@
   let lastLoad = { count: 0, truncated: false, tooFar: false };
   let loadCtl = null;
   function updateStatus() {
+    if (filters.hub && !lastLoad.tooFar) {
+      let n = 0;
+      for (const e of entries.values()) if (e.shown) n++;
+      return setStatus(`พบ Hub ${n.toLocaleString("th-TH")} จุด`);
+    }
     if (lastLoad.tooFar) return setStatus("ซูมเข้าเพื่อดูจุดชาร์จ");
     let shown = 0;
     const b = map.getBounds();
@@ -304,19 +312,21 @@
     setStatus(`พบ ${shown.toLocaleString("th-TH")} จุดในหน้าจอ${lastLoad.truncated ? " (ซูมเข้าเพื่อดูเพิ่ม)" : ""}`);
   }
   async function loadViewport() {
-    if (map.getZoom() < MIN_FETCH_ZOOM) { lastLoad.tooFar = true; updateStatus(); return; }
+    const hubMode = !!filters.hub;
+    if (!hubMode && map.getZoom() < MIN_FETCH_ZOOM) { lastLoad.tooFar = true; updateStatus(); return; }
     lastLoad.tooFar = false;
     const b = map.getBounds().pad(0.15);
     const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((n) => n.toFixed(5)).join(",");
+    const qs = hubMode ? "hub=1" : `bbox=${bbox}`;
     loadCtl?.abort();
     loadCtl = new AbortController();
     setStatus("กำลังโหลด…");
     try {
-      const data = await api(`/api/stations?bbox=${bbox}`, { signal: loadCtl.signal });
+      const data = await api(`/api/stations?${qs}`, { signal: loadCtl.signal });
       const seen = new Set();
       for (const st of data.stations) { seen.add(st.id); upsertMarker(st); }
       // จุดที่อยู่ในกรอบแต่ server ไม่ส่งมาแล้ว (ถูกลบ/หายจาก KML) → เอาออก (ถ้าไม่ถูกตัดที่ 500)
-      if (!data.truncated) for (const [id, e] of [...entries]) if (!seen.has(id) && b.contains(e.marker.getLatLng())) removeMarker(id);
+      if (!hubMode && !data.truncated) for (const [id, e] of [...entries]) if (!seen.has(id) && b.contains(e.marker.getLatLng())) removeMarker(id);
       if (entries.size > MAX_CACHED) trimCache();
       lastLoad = { count: data.count, truncated: data.truncated, tooFar: false };
       updateStatus();
@@ -394,7 +404,7 @@
     sheet.replaceChildren(
       h("div", { class: "sheet-grip" }),
       h("button", { type: "button", class: "sheet-close", "aria-label": "ปิด", text: "×", onclick: closeSheet }),
-      h("div", { class: "pophead" }, logo, h("div", {}, h("div", { class: "brand", text: st.operator }), h("h2", { text: st.name }), ...rows)),
+      h("div", { class: "pophead" }, logo, h("div", {}, h("div", { class: "brand", text: st.operator }), h("h2", {}, st.name, st.hub ? h("span", { class: "hub-badge", text: "Hub" }) : null), ...rows)),
       ...info, conns,
       h("div", { class: "btnrow" }, buttons),
       st.source === "mymaps" ? h("div", { class: "credit", text: CREDIT_TEXT }) : null,
