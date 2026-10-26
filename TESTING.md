@@ -173,3 +173,36 @@ Pending:
 | sw.js cache `ev-shell-v2` | ✅ |
 
 หมายเหตุ: ยังไม่ได้ตรวจ UI บน PRD ด้วยตา (เบราว์เซอร์ในเครื่องมิกะยังเปิด ev.thana.in.th ไม่ได้เพราะ DNS cache) · โค้ดชุดเดียวกับ UAT ที่ตรวจ UI แล้วเมื่อ 13:25
+
+## [2026-10-26 17:58] Bookmark + ค้นหา — local + UAT
+
+| รายการ | ผล |
+|---|---|
+| vitest (workers + node) | ✅ 116/116 (bookmark +6, search +14) |
+| local: PUT bookmark (PIN ทดสอบ local) → ดาวบนหมุด, ★ panel, ตัวกรองเฉพาะที่บันทึกไว้ (ซูมออกยังเห็น), เอาออก → ดาวหาย | ✅ |
+| local: ค้น "หัวหิน" ได้รายการ + ระยะทาง · Enter → สถานที่ 3 รายการ + เครดิต OSM · แตะสถานที่ flyTo · "ฮับ สระบุรี" (AND) → เปิด sheet | ✅ |
+| ปุ่ม "★ บันทึกแล้ว" ไม่ตัดบรรทัด · ไม่ล้นแนวนอนที่ 390px | ✅ |
+| UAT migrate `schema.sql` (bookmarks) --remote | ✅ |
+| deploy UAT (version c98eecb3) · sw `ev-shell-v4` | ✅ |
+| UAT `GET /api/bookmarks` ไม่มี PIN → 200 ว่าง | ✅ |
+| UAT `PUT /api/bookmarks/:id` PIN ผิด → 401 | ✅ |
+| UAT `?q=ฮับ&lat&lng` → 12 จุด มี `distance_km`, `bookmarked` | ✅ |
+| UAT `/api/geocode?q=เชียงใหม่` → ผลจาก Nominatim | ✅ |
+| UAT UI 390×844: ค้น "เพลินจิต" → แตะ → sheet · ★ panel empty state | ✅ |
+| UAT บันทึก bookmark จริงด้วย PIN จริง | ⏳ รอพี่หนุ่มทดสอบ (มิกะไม่มี PIN จริง) |
+
+หมายเหตุ: ค้น "ฮับ" ผลแรกคือ "แฮปปี้ฮับ สปอร์ต…" (ค้นตามตัวอักษร ไม่ใช่นิยาม Hub — ถูกต้องตามสเปก)
+
+## [2026-10-26 18:00] Bookmark + ค้นหา — PRD deploy
+
+| รายการ | ผล |
+|---|---|
+| PRD D1 migrate `schema.sql` (bookmarks) --remote | ✅ |
+| deploy production (version 3ab09a72) | ✅ |
+| `GET /api/bookmarks` บน PRD (ไม่มี PIN) → 200 ว่าง | ✅ |
+| `PUT /api/bookmarks/:id` PIN ผิด → 401 | ✅ |
+| `GET /api/stations?q=หัวหิน` | ✅ 15 รายการ |
+| `GET /api/geocode?q=หัวหิน` | ✅ 3 รายการ |
+| sw.js cache `ev-shell-v4` | ✅ |
+| UI บน PRD | ⚠️ ยังไม่ได้ตรวจด้วยตา (โค้ดชุดเดียวกับ UAT · DNS ในเครื่อง cache) |
+| บันทึก bookmark จริงด้วย PIN จริง | ⏳ รอพี่หนุ่มทดสอบบนมือถือ |

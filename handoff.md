@@ -1,6 +1,6 @@
 # handoff.md — EV-Charger Map
 
-อัปเดตล่าสุด: 2026-10-26 14:30
+อัปเดตล่าสุด: 2026-10-26 18:00
 
 ## สถานะปัจจุบัน
 
@@ -22,13 +22,14 @@ MVP ขึ้นครบทั้ง UAT และ PRD · UAT มีข้อ�
 
 ## Features (MVP)
 
-แผนที่ Leaflet + GPS · โหลดตาม bbox · หมุดโลโก้ยี่ห้อ + สีขอบตามความเร็ว + cluster · แผงข้อมูล/นำทาง/แชร์ · ตัวกรอง (รวม Hub) · เพิ่ม/แก้/ลบ (soft delete) ด้วย Team PIN · PWA · nightly sync
+แผนที่ Leaflet + GPS · โหลดตาม bbox · หมุดโลโก้ยี่ห้อ + สีขอบตามความเร็ว + cluster · แผงข้อมูล/นำทาง/แชร์ · ตัวกรอง (รวม Hub) · Bookmark ทีมใช้ร่วมกัน · ค้นหา (สถานี + สถานที่) · เพิ่ม/แก้/ลบ (soft delete) ด้วย Team PIN · PWA · nightly sync
 
 ## Decisions
 
 - ADR 0001 `docs/adr/0001-data-sources.md` — แหล่งข้อมูล (OSM ส่วนใหญ่ถูกแทนด้วย 0002)
 - ADR 0002 `docs/adr/0002-mymaps-replaces-osm.md` — ใช้ Google My Maps KML เป็นแหล่งข้อมูลหลัก (ไม่มี licence)
 - ADR 0003 `docs/adr/0003-brand-logo-markers.md` — หมุดโลโก้ยี่ห้อ
+- ADR 0004 `docs/adr/0004-place-search-nominatim.md` — ค้นหาสถานที่ผ่าน Nominatim (ไม่ autocomplete, 1 req/s, proxy + cache 24 ชม.)
 - สเปก: `docs/prd/ev-charger-map.md` · คำศัพท์: `CONTEXT.md`
 - ตัดสถานะ ว่าง/ไม่ว่าง ออกจาก MVP -> Phase 2
 
@@ -38,6 +39,8 @@ MVP ขึ้นครบทั้ง UAT และ PRD · UAT มีข้อ�
 - 2026-10-26 11:06 PRD ครั้งแรกล้มเหลว (error 100117 DNS record `ev` เดิมค้าง) · 11:16 ลบ record แล้ว deploy ซ้ำสำเร็จ
 - รายละเอียดเต็ม: `TESTING.md` หัวข้อ `[2026-10-26 11:20] PRD deploy`
 - 2026-10-26 13:25 UAT Hub filter (version e1418561) · 14:30 PRD (version 0c859fed) -> `TESTING.md` หัวข้อ `Hub filter`
+- 2026-10-26 17:54 UAT Bookmark + ค้นหา (version c98eecb3) · 18:00 PRD (version 3ab09a72) -> `TESTING.md` หัวข้อ `Bookmark + ค้นหา`
+- D1 migrate `schema.sql` (ตาราง `bookmarks`) --remote ทำแล้วทั้ง UAT และ PRD
 
 ## Hub filter (2026-10-26)
 
@@ -45,12 +48,21 @@ MVP ขึ้นครบทั้ง UAT และ PRD · UAT มีข้อ�
 - API: ทุก station มี `hub: boolean` · `GET /api/stations?hub=1` คืน Hub ทั้งประเทศ (bbox ใส่หรือไม่ก็ได้)
 - Frontend: ตัวกรองหมวด "ประเภทสถานี" chip Hub · โหมด Hub ไม่สนซูมขั้นต่ำ · bottom sheet มีป้าย "Hub" · sw cache `ev-shell-v2` · ทดสอบ 96/96
 - commit: ดู `git log` (feat: hub filter)
-- ปัญหาเล็กที่ทราบ: (1) แถบสถานะขึ้น "พบ Hub 0 จุด" ชั่วครู่ก่อนโหลดเสร็จ (2) เปิด Hub ตอนซูมอยู่ในกรุงเทพจะไม่เห็นอะไรจนกว่าจะซูมออก — ปรับปรุงได้: `fitBounds` ไปที่ Hub ทั้งหมดตอนเปิด
+- ปัญหาเล็กที่ทราบ: (1) ~~แถบสถานะขึ้น "พบ Hub 0 จุด" ชั่วครู่~~ — แก้แล้วใน 2026-10-26 17:54 (2) เปิด Hub ตอนซูมอยู่ในกรุงเทพจะไม่เห็นอะไรจนกว่าจะซูมออก — ปรับปรุงได้: `fitBounds` ไปที่ Hub ทั้งหมดตอนเปิด
+
+## Bookmark + ค้นหา (2026-10-26)
+
+- Bookmark: ตาราง D1 `bookmarks` · `GET/PUT/DELETE /api/bookmarks` (GET ไม่ต้อง PIN · PUT/DELETE ต้อง Team PIN) · ดาวบนหมุด · แผง ★ บนแถบบน · chip "★ เฉพาะที่บันทึกไว้"
+- ค้นหา: `GET /api/stations?q=` (ชื่อ/ที่อยู่/ยี่ห้อ + `distance_km`) · `GET /api/geocode?q=` (proxy Nominatim cache 24 ชม.) · ค้นสถานที่เฉพาะตอนกด Enter
+- Nominatim policy: ห้าม autocomplete · ไม่เกิน 1 req/s · แสดงเครดิต OSM -> ดู ADR 0004
+- ค้น "ฮับ" จะเจอ "แฮปปี้ฮับ…" ด้วย — ค้นตามตัวอักษร ไม่ใช่นิยาม Hub (ตั้งใจ ตามสเปก)
+- ทดสอบ 116/116 · sw cache `ev-shell-v4`
+- **ค้างอยู่:** พี่หนุ่มทดสอบบันทึก Bookmark จริงด้วย PIN จริงบนมือถือ (UAT/PRD) · UI บน PRD ยังไม่ได้ตรวจด้วยตา (โค้ดเดียวกับ UAT)
 
 ## Known gaps (จาก TESTING.md)
 
 - PRD ยังไม่มี TEAM_PIN / ข้อมูล
-- ยังไม่ได้ทดสอบ: บันทึกเพิ่ม/แก้/ลบจริง · ปุ่มแชร์บนมือถือจริง · ปฏิเสธ GPS · กดค้างบนแผนที่บนมือถือจริง · ติดตั้ง PWA · cron ตี 2
+- ยังไม่ได้ทดสอบ: บันทึก Bookmark จริงด้วย PIN · บันทึกเพิ่ม/แก้/ลบจริง · ปุ่มแชร์บนมือถือจริง · ปฏิเสธ GPS · กดค้างบนแผนที่บนมือถือจริง · ติดตั้ง PWA · cron ตี 2
 - KML ไม่มี id คงที่ -> ผู้เขียนขยับ/เปลี่ยนชื่อหมุดแล้ว override กำพร้า (ยังไม่มีหน้า admin)
 - มีเฉพาะจุด DC · kW มีราว 54%
 
@@ -67,7 +79,7 @@ MVP ขึ้นครบทั้ง UAT และ PRD · UAT มีข้อ�
 
 ## Suggested Skills (session ถัดไป)
 
-`project-hygiene` · `superpowers:systematic-debugging` · `cloudflare:wrangler` · `chrome-devtools-mcp:chrome-devtools`
+`project-hygiene` · `superpowers:systematic-debugging` · `superpowers:verification-before-completion` · `cloudflare:wrangler` · `chrome-devtools-mcp:chrome-devtools`
 
 ## หมายเหตุ
 

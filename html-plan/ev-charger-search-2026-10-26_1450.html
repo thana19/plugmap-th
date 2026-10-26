@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EV-Charger Search Plan</title>
+<style>
+:root{
+  --bg:#0f141b;--surface:#1b2230;--surface2:#232d3f;--text:#e8ecf2;--muted:#9aa5b6;--line:#2a3544;
+  --accent:#2dd4bf;--accent-soft:#12312e;--gold:#fbbf24;
+  --dc:#fb923c;--ac:#60a5fa;--unk:#7c8696;--ok:#4ade80;--bad:#f87171;
+  --map:#1e2a24;--map2:#25342c;--road:#34413a;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.65 system-ui,-apple-system,"Sukhumvit Set","Noto Sans Thai",sans-serif}
+main{max-width:900px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.9rem;line-height:1.25;margin:8px 0 12px}
+h2{font-size:1.35rem;margin:0 0 14px;line-height:1.3}
+h3{font-size:1.05rem;margin:0 0 6px}
+section{margin-top:40px}
+p{margin:0 0 12px}
+.sub{color:var(--muted);font-size:.9rem}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.badge{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:4px 14px;font-size:.9rem;font-weight:600}
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.tablewrap{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{color:var(--muted);font-weight:600;font-size:.82rem}
+code{font:.86em ui-monospace,Menlo,monospace;background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:6px;word-break:break-word}
+pre{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;overflow-x:auto;font:.85rem/1.5 ui-monospace,Menlo,monospace;margin:10px 0}
+ol.steps{padding-left:22px;margin:0}
+ol.steps li{margin:8px 0}
+.checks{list-style:none;padding:0;margin:0}
+.checks li{padding:8px 0 8px 34px;position:relative;border-bottom:1px solid var(--line)}
+.checks li:last-child{border:0}
+.checks li:before{content:"";position:absolute;left:4px;top:13px;width:18px;height:18px;border:2px solid var(--accent);border-radius:5px}
+ul.plain{padding-left:20px;margin:0}ul.plain li{margin:4px 0}
+
+/* mockups */
+.mocks{display:grid;gap:28px 20px;grid-template-columns:repeat(auto-fit,minmax(390px,1fr));justify-items:center}
+.mock{width:100%;max-width:390px}
+.mock .cap{font-size:.9rem;color:var(--muted);margin:0 0 8px;text-align:center}
+.mock .cap b{color:var(--accent)}
+.phone{width:390px;max-width:100%;height:700px;margin:0 auto;border:10px solid #05080c;border-radius:38px;background:var(--surface);overflow:hidden;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.5);font-size:15px;line-height:1.4}
+.mapx{position:absolute;inset:0;background:linear-gradient(135deg,var(--map),var(--map2))}
+.mapx .r{position:absolute;background:var(--road);opacity:.8}
+.dim:after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.top{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:8px;z-index:5}
+.search{flex:1;background:var(--surface);border-radius:12px;padding:10px 14px;color:var(--muted);box-shadow:0 2px 8px rgba(0,0,0,.4);white-space:nowrap;overflow:hidden}
+.tb{background:var(--surface);border-radius:12px;padding:10px 14px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.4);border:1px solid var(--line)}
+.tb.star{color:var(--gold);padding:10px 13px}
+.tb.new{outline:2px dashed var(--accent);outline-offset:2px}
+.tb.on{background:var(--accent);color:#06201d;border-color:var(--accent)}
+.lp{position:absolute;width:38px;height:38px;border-radius:50%;background:#fff;border:3px solid var(--c);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.5)}
+.lp:after{content:"";position:absolute;left:50%;bottom:-8px;width:10px;height:10px;background:#fff;border-right:3px solid var(--c);border-bottom:3px solid var(--c);transform:translateX(-50%) rotate(45deg);z-index:-1}
+.lp.dc{--c:var(--dc)}.lp.ac{--c:var(--ac)}
+.lp .st{position:absolute;top:-8px;right:-8px;width:18px;height:18px;border-radius:50%;background:#1b2230;color:var(--gold);font-size:12px;line-height:18px;text-align:center;border:1.5px solid var(--gold);z-index:2}
+.lg{font:800 10px/1 system-ui,sans-serif;white-space:nowrap}
+.lg.ptt{color:#0b4ea2}.lg.pea{color:#6d2a8f}.lg.ea{color:#00875a;font-size:13px}.lg.elex{color:#d4380d}
+.note{position:absolute;left:12px;right:12px;bottom:12px;z-index:5;font-size:12px;color:var(--muted);text-align:center}
+.panel{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:16px;box-shadow:0 -4px 16px rgba(0,0,0,.5);z-index:6}
+.panel h3{font-size:1.05rem;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+.panel h3 i{font-style:normal;color:var(--muted);font-weight:400}
+.logoc{width:38px;height:38px;border-radius:50%;background:#fff;border:3px solid var(--dc);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.logoc.ac{border-color:var(--ac)}
+.li{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.li:last-of-type{border:0}
+.li .tx{flex:1;min-width:0}
+.li .tx b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .tx span{font-size:.82rem;color:var(--muted)}
+.li .d{font-size:.82rem;color:var(--accent);white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:7px 12px;font-size:.88rem;white-space:nowrap}
+.btn.p{background:var(--accent);color:#06201d;border-color:var(--accent);font-weight:700}
+.empty{text-align:center;color:var(--muted);padding:16px 8px;border:1px dashed var(--line);border-radius:12px;margin-top:10px;font-size:.9rem}
+.sheet .row{margin:4px 0;font-size:.92rem;display:flex;gap:8px;align-items:center;color:var(--muted)}
+.sheet .row b{color:var(--text)}
+.tag{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 10px;font-size:.78rem;font-weight:600}
+.btns{display:flex;gap:6px;margin-top:12px}
+.btns b{flex:1;text-align:center;padding:10px 2px;border-radius:10px;font-size:.88rem;border:1px solid var(--line);background:var(--surface2);font-weight:600}
+.btns b.p{background:var(--accent);color:#06201d;border-color:var(--accent)}
+.btns b.bk{color:var(--gold);border-color:var(--gold);outline:2px dashed var(--accent);outline-offset:2px}
+.btns b.bk.on{background:var(--gold);color:#2a1d00}
+.grp{margin:12px 0 4px;color:var(--muted);font-size:.82rem;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface2);border-radius:999px;padding:7px 14px;font-size:.9rem}
+.chip.on{background:var(--accent);color:#06201d;border-color:var(--accent);font-weight:700}
+.chip.new{outline:2px dashed var(--accent);outline-offset:2px}
+.hint{margin-top:8px;font-size:.78rem;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px;font-size:.85rem;color:var(--muted)}
+footer{margin-top:40px;color:var(--muted);font-size:.85rem}
+
+/* search */
+.sbox{flex:1;min-width:0;background:var(--surface);border-radius:12px;padding:8px 12px 6px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.sbox.new,.drop.new,.ph.new{outline:2px dashed var(--accent);outline-offset:2px}
+.sin{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:7px 10px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.sin.focus{border-color:var(--accent)}
+.sin .v{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis}
+.sin .ph{flex:1;overflow:hidden;text-overflow:ellipsis}
+.sin .x{color:var(--muted);font-size:16px;line-height:1}
+.stat{font-size:.72rem;color:var(--muted);margin-top:3px}
+.drop{position:absolute;top:84px;left:12px;right:12px;background:var(--surface);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.6);z-index:7;padding:6px 12px 10px;border:1px solid var(--line)}
+.dsec{margin:8px 0 2px;color:var(--muted);font-size:.78rem;font-weight:700;letter-spacing:.02em}
+.drow{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.drow:last-of-type{border:0}
+.drow .tx{flex:1;min-width:0}
+.drow .tx b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.92rem}
+.drow .tx span{font-size:.78rem;color:var(--muted)}
+.drow .d{font-size:.8rem;color:var(--accent);white-space:nowrap}
+.drow .logoc{width:34px;height:34px}
+.pin{width:34px;height:34px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex:none}
+.drow.q{background:var(--accent-soft);border-radius:10px;padding:10px;margin-top:6px;border:0;color:var(--accent);font-weight:600;font-size:.92rem}
+.credit{margin-top:8px;font-size:.72rem;color:var(--muted);text-align:right}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="sub">แผนฟีเจอร์ · อัปเดต 2026-10-26 14:50 · รอพี่หนุ่ม confirm ก่อน implement</div>
+  <h1>EV-Charger — ค้นหาที่หน้าหลัก (จุดชาร์จ + สถานที่)</h1>
+  <p>เพิ่มช่องค้นหาบนแถบด้านบนแทนพื้นที่ชื่อแอป ค้นได้ 2 แบบ: <b>จุดชาร์จ</b> จาก D1 (พิมพ์แล้วขึ้นผลทันที) และ <b>สถานที่</b> จาก OpenStreetMap Nominatim ผ่าน Worker proxy (ค้นเมื่อกด Enter หรือแตะแถวเท่านั้น ไม่ autocomplete ตาม usage policy)</p>
+  <div class="badges"><span class="badge">D1 LIKE tokens AND</span><span class="badge">Nominatim ผ่าน Worker</span><span class="badge">Cache API 24 ชม.</span><span class="badge">ไม่มี DB migration</span></div>
+</header>
+
+<section>
+  <h2>1. Context</h2>
+  <ul class="plain">
+    <li>พี่หนุ่มเลือกฟีเจอร์ "ค้นหาที่หน้าหลัก" ค้นได้ทั้งจุดชาร์จและสถานที่</li>
+    <li>แอปปัจจุบัน: แถบด้านบนมีชื่อ "จุดชาร์จ EV" + สถานะ ("พบ N จุดในหน้าจอ") + ปุ่ม ★ และ "กรอง" · Worker <code>worker/src/index.ts</code> มี <code>GET /api/stations</code> (bbox / hub) · frontend <code>public/app.js</code> (<code>loadViewport</code>, sheet, <code>withPin</code>)</li>
+    <li>ยังไม่มี geocoder · Google Places ถูกตัดออกแล้ว (ดู ADR 0004)</li>
+  </ul>
+</section>
+
+<section>
+  <h2>2. Decisions</h2>
+  <div class="cards">
+    <div class="card"><h3>จุดชาร์จ: ค้นใน D1</h3><p class="sub"><code>GET /api/stations?q=&amp;lat=&amp;lng=</code> · แยก token ทุกคำต้องตรง (AND) กับ name / name_en / address / operator / ชื่อ override · <code>deleted=0</code> · สูงสุด 20 · เรียงตามระยะ ชื่อตรงมาก่อน</p></div>
+    <div class="card"><h3>สถานที่: Nominatim ผ่าน Worker</h3><p class="sub"><code>GET /api/geocode?q=</code> · <code>countrycodes=th</code>, <code>accept-language=th</code>, <code>limit=5</code>, <code>format=jsonv2</code> · User-Agent <code>plugmap-th/1.0 (+https://ev.thana.in.th)</code> · cache 24 ชม.</p></div>
+    <div class="card"><h3>ไม่ autocomplete สถานที่</h3><p class="sub">Nominatim policy: ≤ 1 req/วินาที ห้ามยิงขณะพิมพ์ → เรียกเมื่อกด Enter / แตะแถว "ค้นหาสถานที่" เท่านั้น</p></div>
+    <div class="card"><h3>ปิด dropdown + แผงอื่น</h3><p class="sub">Esc / แตะแผนที่ / เลือกผล = ปิด · โฟกัสช่องค้นหา → แผงกรอง/★ ปิด · เครดิต "ค้นหาสถานที่โดย © OpenStreetMap"</p></div>
+  </div>
+  <div class="tablewrap"><table>
+    <tr><th>Endpoint</th><th>ค่า/กติกา</th><th>Error</th></tr>
+    <tr><td><code>GET /api/stations?q=&amp;lat=&amp;lng=</code></td><td><code>q</code> 2–100 ตัวอักษร · สูงสุด 20 · มี <code>distance_km</code> · ไม่ต้อง PIN</td><td>400 ถ้า <code>q</code> สั้น/ว่าง/ยาวเกิน</td></tr>
+    <tr><td><code>GET /api/geocode?q=</code></td><td><code>q</code> 2–100 · คืน <code>{results:[{display_name, lat, lng, type}]}</code> · Cache API 24 ชม. · ไม่ต้อง PIN</td><td>400 q ผิด · 502 upstream พัง</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>3. หน้าตา (Mockup)</h2>
+  <p class="sub">กรอบเส้นประสีเขียวมิ้นต์ = ส่วนที่เพิ่มใหม่ · แถบด้านบนด้านซ้ายมีเฉพาะช่องค้นหา + บรรทัดสถานะ (ไม่มีชื่อแอป)</p>
+  <div class="mocks">
+
+    <!-- (a) -->
+    <div class="mock">
+      <p class="cap"><b>(a)</b> แถบด้านบน: ช่องค้นหา + ★ + กรอง (ยังไม่พิมพ์)</p>
+      <div class="phone">
+        <div class="mapx">
+          <div class="r" style="left:-20px;top:260px;width:460px;height:14px;transform:rotate(-12deg)"></div>
+          <div class="r" style="left:120px;top:-10px;width:12px;height:760px;transform:rotate(8deg)"></div>
+          <div class="r" style="left:-20px;top:480px;width:460px;height:10px;transform:rotate(6deg)"></div>
+          <div class="lp dc" style="left:70px;top:200px"><span class="lg ptt">PTT</span></div>
+          <div class="lp dc" style="left:230px;top:150px"><span class="lg pea">PEA</span><span class="st">★</span></div>
+          <div class="lp ac" style="left:160px;top:330px"><span class="lg ea">EA</span></div>
+          <div class="lp dc" style="left:270px;top:400px"><span class="lg elex">ElexA</span></div>
+          <div class="lp dc" style="left:60px;top:470px"><span class="lg ptt">PTT</span></div>
+          <div class="lp ac" style="left:300px;top:270px"><span class="lg ea">EA</span></div>
+        </div>
+        <div class="top">
+          <div class="sbox new"><div class="sin"><span>🔍</span><span class="ph">ค้นหาจุดชาร์จ หรือสถานที่</span></div><div class="stat">พบ 61 จุดในหน้าจอ</div></div>
+          <div class="tb star">★</div><div class="tb">กรอง</div>
+        </div>
+        <div class="note">© OpenStreetMap contributors</div>
+      </div>
+    </div>
+
+    <!-- (b) -->
+    <div class="mock">
+      <p class="cap"><b>(b)</b> พิมพ์ "หัวหิน" → dropdown ส่วน "จุดชาร์จ" + แถวค้นหาสถานที่</p>
+      <div class="phone">
+        <div class="mapx dim">
+          <div class="r" style="left:-20px;top:300px;width:460px;height:14px;transform:rotate(-12deg)"></div>
+          <div class="lp dc" style="left:230px;top:420px"><span class="lg pea">PEA</span></div>
+        </div>
+        <div class="top">
+          <div class="sbox"><div class="sin focus"><span>🔍</span><span class="v">หัวหิน</span><span class="x">✕</span></div><div class="stat">พบ 61 จุดในหน้าจอ</div></div>
+          <div class="tb star">★</div><div class="tb">กรอง</div>
+        </div>
+        <div class="drop new">
+          <div class="dsec">จุดชาร์จ</div>
+          <div class="drow"><span class="logoc"><span class="lg ptt">PTT</span></span><div class="tx"><b>ปตท หัวหิน (ฮับ)</b><span>PTT EV Station PluZ</span></div><span class="d">2.1 กม.</span></div>
+          <div class="drow"><span class="logoc"><span class="lg pea">PEA</span></span><div class="tx"><b>PEA VOLTA หัวหิน</b><span>PEA Volta</span></div><span class="d">3.4 กม.</span></div>
+          <div class="drow"><span class="logoc ac"><span class="lg ea">EA</span></span><div class="tx"><b>EA Anywhere หัวหิน ซอย 88</b><span>EA Anywhere</span></div><span class="d">5.8 กม.</span></div>
+          <div class="drow q">🔍 ค้นหาสถานที่ "หัวหิน"</div>
+        </div>
+        <p class="hint" style="position:absolute;left:16px;right:16px;bottom:12px;z-index:8;text-align:center">พิมพ์ ≥ 2 ตัว (debounce 300 ms) · แตะแถวจุดชาร์จ = บินไป + เปิด sheet</p>
+      </div>
+    </div>
+
+    <!-- (c) -->
+    <div class="mock">
+      <p class="cap"><b>(c)</b> กด Enter / แตะแถวค้นหาสถานที่ → ส่วน "สถานที่" + เครดิต OSM</p>
+      <div class="phone">
+        <div class="mapx dim">
+          <div class="r" style="left:-20px;top:300px;width:460px;height:14px;transform:rotate(-12deg)"></div>
+        </div>
+        <div class="top">
+          <div class="sbox"><div class="sin focus"><span>🔍</span><span class="v">หัวหิน</span><span class="x">✕</span></div><div class="stat">พบ 61 จุดในหน้าจอ</div></div>
+          <div class="tb star">★</div><div class="tb">กรอง</div>
+        </div>
+        <div class="drop new">
+          <div class="dsec">จุดชาร์จ</div>
+          <div class="drow"><span class="logoc"><span class="lg ptt">PTT</span></span><div class="tx"><b>ปตท หัวหิน (ฮับ)</b><span>PTT EV Station PluZ</span></div><span class="d">2.1 กม.</span></div>
+          <div class="dsec">สถานที่</div>
+          <div class="drow"><span class="pin">📍</span><div class="tx"><b>หัวหิน, ประจวบคีรีขันธ์</b><span>อำเภอ · ประเทศไทย</span></div></div>
+          <div class="drow"><span class="pin">📍</span><div class="tx"><b>ตลาดโต้รุ่งหัวหิน, ประจวบคีรีขันธ์</b><span>ตลาด</span></div></div>
+          <div class="drow"><span class="pin">📍</span><div class="tx"><b>สถานีรถไฟหัวหิน, ประจวบคีรีขันธ์</b><span>สถานีรถไฟ</span></div></div>
+          <div class="credit">ค้นหาสถานที่โดย © OpenStreetMap</div>
+        </div>
+        <p class="hint" style="position:absolute;left:16px;right:16px;bottom:12px;z-index:8;text-align:center">แตะสถานที่ = บินไปซูม 14 แล้วโหลดจุดชาร์จตามปกติ · ล้มเหลว = "ค้นหาสถานที่ไม่สำเร็จ"</p>
+      </div>
+    </div>
+
+  </div>
+  <div class="legend"><span>ขอบส้ม = DC เร็ว</span><span>ขอบน้ำเงิน = AC</span><span>📍 = ผลสถานที่จาก Nominatim</span></div>
+</section>
+
+<section>
+  <h2>4. Steps</h2>
+  <ol class="steps">
+    <li><b>Docs</b> (เสร็จแล้ว) — PRD, CONTEXT, ADR 0004, HTML plan นี้ → รอพี่หนุ่ม confirm</li>
+    <li><b>Implement</b> (<code>senior-programmer</code>) — Worker: <code>?q=</code> ใน <code>/api/stations</code> (tokens AND, escape LIKE, เรียงระยะ, ชื่อตรงก่อน) + <code>/api/geocode</code> (proxy, UA, Cache API, 400/502)</li>
+    <li><b>Frontend</b> — ช่องค้นหาแทนชื่อแอป, ปุ่ม ×, dropdown 2 ส่วน, debounce 300 ms + <code>AbortController</code>, Enter/แถวค้นหาสถานที่, Esc/แตะแผนที่ปิด, ปิดแผงกรอง/★ เมื่อโฟกัส, เครดิต OSM, <code>sw.js</code> bump cache</li>
+    <li><b>Tests</b> ใน <code>worker/test</code> — q search + geocode (mock <code>fetch</code>) ต้องผ่านทั้งหมด</li>
+    <li><b>รีวิว diff</b> โดยมิกะ → ถามก่อน deploy UAT (ไม่มี schema ใหม่)</li>
+    <li><b>UAT</b> ทดสอบ UI บนมือถือ → ถามก่อน <b>PRD</b> → อัปเดต TESTING / handoff / README → push</li>
+  </ol>
+</section>
+
+<section>
+  <h2>5. Files</h2>
+  <div class="tablewrap"><table>
+    <tr><th>ไฟล์</th><th>การแก้</th></tr>
+    <tr><td><code>worker/src/index.ts</code></td><td>โหมด <code>?q=</code> ใน <code>/api/stations</code> + route <code>/api/geocode</code> (หรือแยก <code>worker/src/search.ts</code>)</td></tr>
+    <tr><td><code>public/index.html</code></td><td>ช่องค้นหา, ปุ่ม ×, container dropdown (แทนชื่อแอป)</td></tr>
+    <tr><td><code>public/app.js</code></td><td>debounce, fetch q/geocode, render dropdown, flyTo, Esc/แตะแผนที่, ปิดแผงอื่น</td></tr>
+    <tr><td><code>public/styles.css</code></td><td>สไตล์ช่องค้นหา, dropdown, เครดิต</td></tr>
+    <tr><td><code>public/sw.js</code></td><td>bump cache name</td></tr>
+    <tr><td><code>worker/test/*</code></td><td>เคส q search + geocode</td></tr>
+    <tr><td><code>docs/prd/ev-charger-map.md</code>, <code>CONTEXT.md</code>, <code>docs/adr/0004-place-search-nominatim.md</code></td><td>เอกสาร (แก้แล้ว)</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>6. Verification</h2>
+  <ul class="checks">
+    <li><code>npx vitest run</code> ผ่านทั้งหมด: q tokens AND · <code>deleted=1</code> ไม่โผล่ · limit 20 · <code>q</code> สั้น = 400</li>
+    <li>geocode: <code>q</code> ผิด = 400 · mock <code>fetch</code> ถูกเรียกด้วย <code>countrycodes=th</code> + User-Agent <code>plugmap-th/1.0 (+https://ev.thana.in.th)</code> · upstream error = 502</li>
+    <li>UAT ที่ 390x844: พิมพ์ "หัวหิน" เห็นจุดชาร์จเรียงใกล้→ไกล · แตะแล้วบิน + เปิด sheet</li>
+    <li>กด Enter เห็นส่วน "สถานที่" + เครดิต OSM · แตะแล้วบินซูม 14 และโหลดจุด</li>
+    <li>Network ตอนพิมพ์ไม่มี request ไป <code>/api/geocode</code> (ไม่ autocomplete)</li>
+    <li>Esc / แตะแผนที่ปิด dropdown · โฟกัสช่องแล้วแผงกรอง/★ ปิด · ปุ่ม × ล้างข้อความ</li>
+    <li>curl: <code>/api/stations?q=a</code> = 400 · <code>/api/geocode?q=หัวหิน</code> = 200 และครั้งที่ 2 มาจาก cache</li>
+  </ul>
+</section>
+
+<footer>EV-Charger · แผนค้นหา · 2026-10-26 14:50</footer>
+</main>
+</body>
+</html>

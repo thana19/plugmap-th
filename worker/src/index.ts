@@ -12,6 +12,13 @@ export interface Env {
 }
 
 const MAX_BBOX_RESULTS = 500;
+const MAX_SEARCH_RESULTS = 20;
+const MAX_SEARCH_TOKENS = 5;
+const Q_MIN = 2;
+const Q_MAX = 100;
+const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
+const NOMINATIM_UA = "plugmap-th/1.0 (+https://ev.thana.in.th)";
+const GEOCODE_TTL_S = 24 * 60 * 60;
 
 interface StationRow {
   id: string;
@@ -29,6 +36,9 @@ interface StationRow {
   ov_connectors_json: string | null;
   ov_edited_by: string | null;
   ov_edited_at: string | null;
+  bm_station_id: string | null;
+  bm_created_by?: string | null;
+  bm_created_at?: string | null;
 }
 
 export interface StationDto {
@@ -46,12 +56,15 @@ export interface StationDto {
   speed: SpeedClass;
   hub: boolean;
   edited: boolean;
+  bookmarked: boolean;
 }
 
 const SELECT_STATION = `SELECT s.id, s.source, s.name, s.name_en, s.address, s.hours, s.operator, s.lat, s.lng, s.connectors_json,
     o.name AS ov_name, o.operator AS ov_operator, o.connectors_json AS ov_connectors_json,
-    o.edited_by AS ov_edited_by, o.edited_at AS ov_edited_at
-  FROM stations s LEFT JOIN station_overrides o ON o.station_id = s.id`;
+    o.edited_by AS ov_edited_by, o.edited_at AS ov_edited_at,
+    b.station_id AS bm_station_id, b.created_by AS bm_created_by, b.created_at AS bm_created_at
+  FROM stations s LEFT JOIN station_overrides o ON o.station_id = s.id
+  LEFT JOIN bookmarks b ON b.station_id = s.id`;
 
 function json(data: unknown, status = 200, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(data), {
@@ -92,6 +105,7 @@ export function toDto(r: StationRow): StationDto {
     speed: classifySpeed(connectors),
     hub: isHub(name, r.name_en),
     edited: r.ov_edited_at != null,
+    bookmarked: r.bm_station_id != null,
   };
 }
 
@@ -147,7 +161,114 @@ async function guardWrite(request: Request, env: Env): Promise<Response | null> 
 
 // ---------- handlers ----------
 
+/** q ที่ผ่านการ trim และยาว 2-100 · null = ไม่ผ่าน */
+function validQ(raw: string | null): string | null {
+  const q = (raw ?? "").trim();
+  return q.length >= Q_MIN && q.length <= Q_MAX ? q : null;
+}
+
+/** escape ตัวอักษรพิเศษของ LIKE (ใช้คู่ ESCAPE '\\') */
+export function escapeLike(t: string): string {
+  return t.replace(/[\\%_]/g, (c) => "\\" + c);
+}
+
+/** แยก q เป็น token ด้วยช่องว่าง (สูงสุด MAX_SEARCH_TOKENS) แล้ว escape เป็น pattern `%tok%` */
+export function searchPatterns(q: string): string[] {
+  return q.split(/\s+/).filter(Boolean).slice(0, MAX_SEARCH_TOKENS).map((t) => `%${escapeLike(t)}%`);
+}
+
+async function searchStations(url: URL, env: Env, rawQ: string | null): Promise<Response> {
+  const q = validQ(rawQ);
+  if (!q) return err(400, `q ต้องยาว ${Q_MIN}-${Q_MAX} ตัวอักษร`);
+  const pats = searchPatterns(q);
+  const latP = url.searchParams.get("lat");
+  const lngP = url.searchParams.get("lng");
+  const lat = latP === null || latP.trim() === "" ? NaN : Number(latP);
+  const lng = lngP === null || lngP.trim() === "" ? NaN : Number(lngP);
+  const hasPos = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+
+  const anyCol = (cols: string[]) => "(" + cols.map((c) => `${c} LIKE ? ESCAPE '\\'`).join(" OR ") + ")";
+  const allCols = ["s.name", "s.name_en", "s.address", "s.operator", "o.name"];
+  const nameCols = ["s.name", "s.name_en", "o.name"];
+  const binds: unknown[] = [];
+  const conds = pats.map((p) => {
+    binds.push(...allCols.map(() => p));
+    return anyCol(allCols);
+  });
+  const nameConds = pats.map((p) => {
+    binds.push(...nameCols.map(() => p));
+    return anyCol(nameCols);
+  });
+  // จุดที่ทุก token ตรงกับชื่อมาก่อน แล้วค่อยเรียงตามระยะ (ถ้ามีพิกัด)
+  let order = `CASE WHEN ${nameConds.join(" AND ")} THEN 0 ELSE 1 END ASC`;
+  if (hasPos) {
+    const k = Math.cos((lat * Math.PI) / 180);
+    order += ", ((s.lat - ?) * (s.lat - ?) + ((s.lng - ?) * (s.lng - ?)) * ? * ?) ASC";
+    binds.push(lat, lat, lng, lng, k, k);
+  }
+  order += ", s.id";
+  binds.push(MAX_SEARCH_RESULTS);
+  const { results } = await env.DB
+    .prepare(`${SELECT_STATION} WHERE s.deleted = 0 AND ${conds.join(" AND ")} ORDER BY ${order} LIMIT ?`)
+    .bind(...binds)
+    .all<StationRow>();
+  const stations = results.map((r) => {
+    const dto = toDto(r);
+    return hasPos ? { ...dto, distance_km: Math.round(haversineKm(lat, lng, r.lat, r.lng) * 10) / 10 } : dto;
+  });
+  return json({ stations, count: stations.length });
+}
+
+function haversineKm(la1: number, ln1: number, la2: number, ln2: number): number {
+  const rad = Math.PI / 180;
+  const dLa = (la2 - la1) * rad;
+  const dLn = (ln2 - ln1) * rad;
+  const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * rad) * Math.cos(la2 * rad) * Math.sin(dLn / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+async function geocode(request: Request, url: URL): Promise<Response> {
+  const q = validQ(url.searchParams.get("q"));
+  if (!q) return err(400, `q ต้องยาว ${Q_MIN}-${Q_MAX} ตัวอักษร`);
+  const normalized = q.toLowerCase().replace(/\s+/g, " ");
+  const cacheKey = new Request(`https://geocode.cache.internal/?q=${encodeURIComponent(normalized)}`);
+  const cache = (caches as unknown as { default: Cache }).default;
+  try {
+    const hit = await cache.match(cacheKey);
+    if (hit) return new Response(hit.body, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
+  } catch {
+    /* cache ใช้ไม่ได้ = ข้าม */
+  }
+  const target = `${NOMINATIM_URL}?format=jsonv2&countrycodes=th&accept-language=th&limit=5&q=${encodeURIComponent(q)}`;
+  let rows: unknown;
+  try {
+    const up = await fetch(target, { headers: { "User-Agent": NOMINATIM_UA, Accept: "application/json" } });
+    if (!up.ok) return err(502, "geocoder error");
+    rows = await up.json();
+  } catch {
+    return err(502, "geocoder error");
+  }
+  if (!Array.isArray(rows)) return err(502, "geocoder error");
+  const results = rows
+    .map((r: any) => ({
+      display_name: String(r?.display_name ?? ""),
+      lat: Number(r?.lat),
+      lng: Number(r?.lon),
+      type: typeof r?.type === "string" ? r.type : "",
+    }))
+    .filter((r) => r.display_name && Number.isFinite(r.lat) && Number.isFinite(r.lng))
+    .slice(0, 5);
+  const body = JSON.stringify({ results });
+  try {
+    await cache.put(cacheKey, new Response(body, { headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${GEOCODE_TTL_S}` } }));
+  } catch {
+    /* ไม่เป็นไร */
+  }
+  return new Response(body, { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
+}
+
 async function listStations(url: URL, env: Env): Promise<Response> {
+  if (url.searchParams.has("q")) return searchStations(url, env, url.searchParams.get("q"));
   const hubOnly = url.searchParams.get("hub") === "1";
   const bboxParam = url.searchParams.get("bbox");
   let bb: number[] | null = null;
@@ -278,6 +399,38 @@ async function deleteStation(request: Request, env: Env, id: string): Promise<Re
   return json({ ok: true, id });
 }
 
+async function listBookmarks(env: Env): Promise<Response> {
+  const { results } = await env.DB
+    .prepare(`${SELECT_STATION} WHERE s.deleted = 0 AND b.station_id IS NOT NULL ORDER BY b.created_at DESC`)
+    .all<StationRow>();
+  const stations = results.map((r) => ({
+    ...toDto(r),
+    bookmark: { created_by: r.bm_created_by ?? null, created_at: r.bm_created_at ?? null },
+  }));
+  return json({ stations, count: stations.length });
+}
+
+async function putBookmark(request: Request, env: Env, id: string): Promise<Response> {
+  const row = await getStationRow(env, id);
+  if (!row) return err(404, "ไม่พบจุดชาร์จ");
+  // body ไม่บังคับ (ว่าง = ไม่มีชื่อ) แต่ถ้ามีต้องเป็น JSON object
+  const text = await request.text();
+  const body = text.trim() === "" ? {} : await readJson(new Request(request.url, { method: "POST", body: text }));
+  const createdBy = str(body.created_by, 100) ?? null;
+  // idempotent: ซ้ำ = คง created_at/created_by เดิม
+  await env.DB
+    .prepare("INSERT INTO bookmarks (station_id, created_by, created_at) VALUES (?, ?, ?) ON CONFLICT(station_id) DO NOTHING")
+    .bind(id, createdBy, new Date().toISOString())
+    .run();
+  const fresh = await getStationRow(env, id);
+  return json(toDto(fresh!));
+}
+
+async function deleteBookmark(env: Env, id: string): Promise<Response> {
+  await env.DB.prepare("DELETE FROM bookmarks WHERE station_id = ?").bind(id).run();
+  return json({ ok: true });
+}
+
 async function route(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
@@ -308,6 +461,30 @@ async function route(request: Request, env: Env): Promise<Response> {
       const denied = await guardWrite(request, env);
       if (denied) return denied;
       return method === "PATCH" ? patchStation(request, env, id) : deleteStation(request, env, id);
+    }
+    return err(405, "method not allowed");
+  }
+
+  if (pathname === "/api/geocode") {
+    return method === "GET" ? geocode(request, url) : err(405, "method not allowed");
+  }
+
+  if (pathname === "/api/bookmarks") {
+    return method === "GET" ? listBookmarks(env) : err(405, "method not allowed");
+  }
+
+  const bm = /^\/api\/bookmarks\/(.+)$/.exec(pathname);
+  if (bm) {
+    let id: string;
+    try {
+      id = decodeURIComponent(bm[1]);
+    } catch {
+      return err(400, "bad id");
+    }
+    if (method === "PUT" || method === "DELETE") {
+      const denied = await guardWrite(request, env);
+      if (denied) return denied;
+      return method === "PUT" ? putBookmark(request, env, id) : deleteBookmark(env, id);
     }
     return err(405, "method not allowed");
   }

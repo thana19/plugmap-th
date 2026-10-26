@@ -1,5 +1,5 @@
 // Service worker — cache เฉพาะ app shell (HTML/JS/CSS/icons/โลโก้/Leaflet) · ไม่ cache /api และแผนที่ tiles
-const VERSION = "ev-shell-v2";
+const VERSION = "ev-shell-v4";
 
 const LOCAL_SHELL = [
   "/", "/index.html", "/app.js", "/styles.css", "/manifest.json",

@@ -1,6 +1,6 @@
 # plan.md — EV-Charger Map
 
-อัปเดตล่าสุด: 2026-10-26 14:30
+อัปเดตล่าสุด: 2026-10-26 18:00
 
 ## ทำแล้ว
 
@@ -15,11 +15,17 @@
 | 2026-10-26 11:2x | git push -> github.com/thana19/plugmap-th (public) |
 | 2026-10-26 13:25 | Hub filter (ตัวกรอง "ประเภทสถานี" + `?hub=1`) ทดสอบ 96/96 · UAT ผ่าน |
 | 2026-10-26 14:30 | Hub filter deploy PRD (version 0c859fed) · `?hub=1` = 12 จุด |
+| 2026-10-26 14:45 | Bookmark (ทีมใช้ร่วมกัน) — วางแผน (html-plan) |
+| 2026-10-26 17:54 | Bookmark — UAT (version c98eecb3) · ทดสอบ 116/116 |
+| 2026-10-26 18:00 | Bookmark — PRD (version 3ab09a72) |
+| 2026-10-26 14:50 | ค้นหาบนหน้าหลัก (สถานี + สถานที่ Nominatim, ADR 0004) — วางแผน (html-plan) |
+| 2026-10-26 17:54 | ค้นหา — UAT (version c98eecb3) |
+| 2026-10-26 18:00 | ค้นหา — PRD (version 3ab09a72) |
 
 ## ขั้นต่อไป
 
 1. พี่หนุ่มตั้ง TEAM_PIN production + sync ครั้งแรก (ตอนนี้ PRD ยังว่าง 0 จุด)
-2. ทดสอบบนมือถือจริง: เพิ่ม/แก้/ลบจุด · แชร์ · ปฏิเสธ GPS · กดค้างบนแผนที่ · ติดตั้ง PWA
+2. ทดสอบบนมือถือจริง: บันทึก Bookmark ด้วย PIN จริง · เพิ่ม/แก้/ลบจุด · แชร์ · ปฏิเสธ GPS · กดค้างบนแผนที่ · ติดตั้ง PWA
 3. ตรวจ cron ตี 2 คืนแรก (UAT + PRD)
 
 ## Phase 2
@@ -28,7 +34,6 @@
 - จุด AC จาก OSM / OCM (ถ้าได้ API key)
 - Google Places (evChargeOptions) — ต้องแสดงบน Google Map
 - หน้า admin แสดง override ที่กำพร้า (orphan)
-- ค้นหา
 
 ## ก่อนเปิดสาธารณะ
 

@@ -1,10 +1,10 @@
 # CONTEXT.md — EV-Charger
 
-อัปเดตล่าสุด: 2026-10-26 14:30
+อัปเดตล่าสุด: 2026-10-26 14:50
 
 เว็บแอป PWA แผนที่จุดชาร์จ EV ในประเทศไทย สำหรับพี่หนุ่มและทีม/ร้าน EV ใช้ภายใน
 
-- Stack: static PWA (vanilla JS + Leaflet + OSM tiles) + Cloudflare Worker + D1 · แหล่งข้อมูลดู `docs/adr/0002-mymaps-replaces-osm.md` (และ `0001`) · หมุดโลโก้ยี่ห้อ `docs/adr/0003-brand-logo-markers.md`
+- Stack: static PWA (vanilla JS + Leaflet + OSM tiles) + Cloudflare Worker + D1 · แหล่งข้อมูลดู `docs/adr/0002-mymaps-replaces-osm.md` (และ `0001`) · หมุดโลโก้ยี่ห้อ `docs/adr/0003-brand-logo-markers.md` · ค้นหาสถานที่ `docs/adr/0004-place-search-nominatim.md`
 - สถานะ repo: git (public) github.com/thana19/plugmap-th
 
 ## เป้าหมาย
@@ -31,6 +31,9 @@
 | ~~**สถานะหมดอายุ (Report TTL)**~~ | Phase 2 (ตัดออกจาก MVP 2026-10-26) — เดิม: available/busy 45 นาที · broken 24 ชม. |
 | **Speed class** | ความเร็วชาร์จของ Station ใช้กำหนด **สีขอบหมุด** (ขอบหนา 3px รอบโลโก้): **DC เร็ว** (max kW ≥ 50 หรือมีหัว CCS2/CHAdeMO/GB/T DC) = ส้ม · **AC** (มีแค่ Type 2/Type 1 หรือ kW < 50) = น้ำเงิน · **ไม่ทราบ** = เทา |
 | **Hub** | Station ที่ชื่อ (หลัง override) หรือ `name_en` ตรง `/\bhub\b|\(ฮับ\)|ฮับสถานี/i` (`isHub` ใน `worker/src/normalize.ts`) = สถานีชาร์จขนาดใหญ่ · ตอนนี้ ~12 จุดทั่วประเทศ · API ส่ง `hub: boolean` ทุกจุด · ใช้ในตัวกรอง "ประเภทสถานี" |
+| **Bookmark (จุดที่บันทึกไว้)** | Station ที่ทีมกดบันทึกไว้ — แชร์ทั้งทีม เก็บใน D1 ตาราง `bookmarks` (`station_id`, `created_by`, `created_at`) · เพิ่ม/ลบต้องใส่ Team PIN, ดูรายการไม่ต้องใช้ PIN · ถ้า Station ถูกลบ (`deleted=1`) จะซ่อนจากรายการ · API ส่ง `bookmarked: boolean` ทุกจุด |
+| **Search (ค้นหา)** | ช่องค้นหาบนแถบด้านบนของหน้าหลัก ค้นได้ 2 อย่าง: **จุดชาร์จ** (`GET /api/stations?q=` ค้นใน D1: แยก token ทุกคำต้องตรง `name`/`name_en`/`address`/`operator`/ชื่อ override, `deleted=0`, สูงสุด 20, เรียงตามระยะ) พิมพ์ ≥ 2 ตัว debounce 300 ms · และ **สถานที่** (`GET /api/geocode?q=` → Nominatim) เรียกเมื่อกด Enter หรือแตะแถว "ค้นหาสถานที่" เท่านั้น · แตะผลจุดชาร์จ = `flyTo` + เปิด sheet · แตะสถานที่ = `flyTo` ซูม 14 (ADR 0004) |
+| **Nominatim** | บริการ geocoder (ค้นชื่อสถานที่ → พิกัด) ของ OpenStreetMap `nominatim.openstreetmap.org` ฟรี ไม่ต้องมี key · **usage policy:** สูงสุด 1 request/วินาที, **ห้าม autocomplete/ยิงขณะพิมพ์**, ต้องส่ง User-Agent ที่ระบุแอปได้ (`plugmap-th/1.0 (+https://ev.thana.in.th)`), ต้อง cache ผลลัพธ์, ต้องแสดงเครดิต "© OpenStreetMap" · เรียกผ่าน Worker `/api/geocode` เท่านั้น (`countrycodes=th`, `accept-language=th`, `limit=5`, cache 24 ชม.) · ใช้ค้นสถานที่เท่านั้น ไม่ใช่แหล่งข้อมูลจุดชาร์จ (ADR 0002 ยังใช้ได้) |
 | **Marker (หมุด)** | หมุดบนแผนที่ = วงกลม ~36px พื้นขาว มีโลโก้ยี่ห้ออยู่กลาง ขอบ 3px สีตาม Speed class และมีหางชี้ตำแหน่งจริง (Leaflet `L.divIcon`) · ไม่มีโลโก้/โหลดไม่ได้ = ตัวย่อ 2–4 ตัวบนสีแบรนด์ · ซูมออกรวมเป็น cluster ตัวเลข (ADR 0003) |
 | **Brand logo / operator_slug** | `operator_slug` = รหัสสั้นของ Operator (เช่น `ptt`, `pea`) ที่ Worker แนบมากับ API จากตาราง alias ใน `normalize.ts` · frontend ใช้ map ไปที่ `public/logos/logos.json` (`slug, operator, color, abbr, file, source_url, fetched_at`) เพื่อหาไฟล์ `public/logos/<slug>.png` (96×96) · โลโก้ = ไอคอนแอปทางการจาก App Store (ผู้พัฒนาตรงกับแบรนด์) · เป็นเครื่องหมายการค้าของเจ้าของ ใช้ในทีม ต้องตรวจก่อนเปิดสาธารณะ (ADR 0003) |
 | **Team PIN (รหัสทีม)** | รหัสร่วมของทีม ต้องใส่ก่อนเพิ่ม/แก้/ลบ Station · ดูแผนที่ไม่ต้องใส่ |

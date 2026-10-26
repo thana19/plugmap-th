@@ -39,3 +39,10 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   count INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (ip, window)
 );
+
+-- bookmark จุดชาร์จ แชร์ทั้งทีม (ไม่มี FK: จุดที่ถูกลบ bookmark ยังอยู่แต่ไม่แสดง)
+CREATE TABLE IF NOT EXISTS bookmarks (
+  station_id TEXT PRIMARY KEY,
+  created_by TEXT,
+  created_at TEXT NOT NULL
+);

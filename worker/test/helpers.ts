@@ -16,7 +16,7 @@ function statements(sql: string): string[] {
 
 export async function resetDb(): Promise<void> {
   await env.DB.batch(statements(schema).map((s) => env.DB.prepare(s)));
-  await env.DB.batch(["stations", "station_overrides", "rate_limits"].map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
+  await env.DB.batch(["stations", "station_overrides", "rate_limits", "bookmarks"].map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
 }
 
 export interface KmlStation {

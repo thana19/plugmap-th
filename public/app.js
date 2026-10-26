@@ -32,7 +32,7 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
     del(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } },
   };
-  function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+  function debounce(fn, ms) { let t; const d = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; d.cancel = () => clearTimeout(t); return d; }
 
   let toastTimer;
   function toast(msg, ms = 3000) {
@@ -204,11 +204,11 @@
     const b = brandOf(st);
     return L.divIcon({
       className: "lp-wrap" + (selected ? " sel-wrap" : ""),
-      html: `<div class="lp ${st.speed}${selected ? " sel" : ""}">${brandInner(b, "lp-img")}</div>`,
+      html: `<div class="lp ${st.speed}${selected ? " sel" : ""}">${brandInner(b, "lp-img")}${st.bookmarked ? '<span class="bm-star" aria-hidden="true">★</span>' : ""}</div>`,
       iconSize: [36, 36], iconAnchor: [18, 44],
     });
   }
-  const sigOf = (st) => JSON.stringify([st.hub, st.name, st.operator, st.connectors, st.speed, st.address, st.hours, st.edited]);
+  const sigOf = (st) => JSON.stringify([st.hub, st.name, st.operator, st.connectors, st.speed, st.address, st.hours, st.edited, !!st.bookmarked]);
 
   function upsertMarker(st) {
     const sig = sigOf(st);
@@ -235,13 +235,15 @@
   }
 
   // ---------- filters ----------
+  const defaultFilters = () => ({ ops: [], types: [], minKw: 0, hub: false, bookmarked: false });
   const filters = (() => {
-    try { return Object.assign({ ops: [], types: [], minKw: 0, hub: false }, JSON.parse(store.get("ev_filters") || "{}")); }
-    catch { return { ops: [], types: [], minKw: 0, hub: false }; }
+    try { return Object.assign(defaultFilters(), JSON.parse(store.get("ev_filters") || "{}")); }
+    catch { return defaultFilters(); }
   })();
-  const filterActive = () => (filters.ops.length ? 1 : 0) + (filters.types.length ? 1 : 0) + (filters.minKw ? 1 : 0) + (filters.hub ? 1 : 0);
+  const filterActive = () => (filters.ops.length ? 1 : 0) + (filters.types.length ? 1 : 0) + (filters.minKw ? 1 : 0) + (filters.hub ? 1 : 0) + (filters.bookmarked ? 1 : 0);
   function passes(st) {
     if (filters.hub && !st.hub) return false;
+    if (filters.bookmarked && !st.bookmarked) return false;
     if (filters.ops.length && !filters.ops.includes(st.operator_slug || "_other")) return false;
     if (filters.types.length && !st.connectors.some((c) => filters.types.includes(c.type))) return false;
     if (filters.minKw && maxKw(st) < filters.minKw) return false;
@@ -277,33 +279,235 @@
       [[0, "ทุกกำลังไฟ"], [7, "7 kW ขึ้นไป"], [22, "22 kW ขึ้นไป"], [50, "50 kW ขึ้นไป (DC เร็ว)"], [100, "100 kW ขึ้นไป"], [150, "150 kW ขึ้นไป"]]
         .map(([v, t]) => h("option", { value: v, selected: filters.minKw === v }, t)));
     const hubChip = chip("Hub (สถานีชาร์จขนาดใหญ่)", !!filters.hub, () => { filters.hub = !filters.hub; loadViewport(); });
+    const bmChip = chip("★ เฉพาะที่บันทึกไว้", !!filters.bookmarked, () => { filters.bookmarked = !filters.bookmarked; loadViewport(); });
     panel.append(
-      h("h3", { text: "ประเภทสถานี" }), h("div", { class: "chips" }, [hubChip]),
+      h("h3", { text: "ประเภทสถานี" }), h("div", { class: "chips" }, [hubChip, bmChip]),
       h("h3", { text: "ยี่ห้อ" }), h("div", { class: "chips" }, opChips),
       h("h3", { text: "ชนิดหัวชาร์จ" }), h("div", { class: "chips" }, typeChips),
       h("h3", { text: "กำลังไฟขั้นต่ำ" }), kwSel,
       h("div", { class: "filter-actions" },
-        h("button", { type: "button", class: "btn", text: "ล้างตัวกรอง", onclick: () => { filters.ops = []; filters.types = []; filters.minKw = 0; filters.hub = false; applyFilters(); buildFilterPanel(); loadViewport(); } }),
+        h("button", { type: "button", class: "btn", text: "ล้างตัวกรอง", onclick: () => { Object.assign(filters, defaultFilters()); applyFilters(); buildFilterPanel(); loadViewport(); } }),
         h("button", { type: "button", class: "btn primary", text: "ปิด", onclick: () => toggleFilter(false) })),
     );
   }
   function toggleFilter(open) {
     const panel = $("#filter-panel");
     const show = open ?? panel.hidden;
-    if (show) buildFilterPanel();
+    if (show) { toggleBookmarks(false); buildFilterPanel(); }
     panel.hidden = !show;
     $("#btn-filter").setAttribute("aria-expanded", String(show));
   }
   $("#btn-filter").addEventListener("click", () => toggleFilter());
 
+  // ---------- bookmarks panel ----------
+  let lastGps = null; // ตำแหน่ง GPS ล่าสุดที่อ่านได้ (ใช้คำนวณระยะในรายการ bookmark)
+  let bmReq = 0;
+  function bookmarkRow(st, origin) {
+    const km = (origin.distanceTo(L.latLng(st.lat, st.lng)) / 1000).toFixed(1);
+    const logo = h("div", { class: `logoc ${st.speed}` });
+    logo.innerHTML = brandInner(brandOf(st), "logo-img");
+    return h("li", { class: "bm-row" },
+      h("button", { type: "button", class: "bm-main", onclick: () => openBookmark(st) },
+        logo,
+        h("span", { class: "bm-text" }, h("span", { class: "bm-name", text: st.name }), h("span", { class: "bm-sub", text: `${st.operator} · ${km} กม.` }))),
+      h("a", { class: "btn bm-nav", href: navUrl(st), target: "_blank", rel: "noopener", "aria-label": `นำทางไป ${st.name}`, text: "นำทาง" }));
+  }
+  function openBookmark(st) {
+    toggleBookmarks(false);
+    upsertMarker(st);
+    const z = Math.max(map.getZoom(), 16);
+    const target = map.project(L.latLng(st.lat, st.lng), z).add([0, Math.min(window.innerHeight * 0.22, 160)]);
+    map.flyTo(map.unproject(target, z), z);
+    selectStation(st.id, { pan: false });
+  }
+  async function buildBookmarkPanel() {
+    const panel = $("#bm-panel");
+    const my = ++bmReq;
+    panel.replaceChildren(h("h3", { text: "จุดที่บันทึกไว้" }), h("p", { class: "muted", text: "กำลังโหลด…" }));
+    try {
+      const data = await api("/api/bookmarks");
+      if (my !== bmReq) return;
+      const origin = lastGps || map.getCenter();
+      const list = data.stations
+        .map((st) => ({ st, d: origin.distanceTo(L.latLng(st.lat, st.lng)) }))
+        .sort((a, b) => a.d - b.d);
+      panel.replaceChildren(
+        h("h3", { text: `จุดที่บันทึกไว้${list.length ? ` (${list.length})` : ""}` }),
+        list.length ? h("ul", { class: "bm-list" }, list.map(({ st }) => bookmarkRow(st, origin))) : h("p", { class: "muted", text: "ยังไม่มีจุดที่บันทึกไว้" }),
+        h("div", { class: "filter-actions" }, h("button", { type: "button", class: "btn primary", text: "ปิด", onclick: () => toggleBookmarks(false) })),
+      );
+    } catch (e) {
+      if (my !== bmReq) return;
+      toggleBookmarks(false);
+      toast(e.message || "โหลดรายการที่บันทึกไว้ไม่สำเร็จ");
+    }
+  }
+  function toggleBookmarks(open) {
+    const panel = $("#bm-panel");
+    const show = open ?? panel.hidden;
+    if (show) { toggleFilter(false); buildBookmarkPanel(); } else bmReq++;
+    panel.hidden = !show;
+    $("#btn-bookmarks").setAttribute("aria-expanded", String(show));
+  }
+  $("#btn-bookmarks").addEventListener("click", () => toggleBookmarks());
+
+  // ---------- search (ADR 0004) ----------
+  const searchInput = $("#search-input");
+  const searchClear = $("#search-clear");
+  const searchDrop = $("#search-drop");
+  const SEARCH_MIN = 2;
+  // stations: null=ยังไม่โหลด · places: null=ยังไม่ค้น · placeState: idle|loading|error
+  const search = { q: "", stations: null, stationState: "idle", places: null, placeState: "idle", open: false };
+  let stationCtl = null;
+  let geoCtl = null;
+
+  function searchOrigin() { return lastGps || map.getCenter(); }
+  function closeSearch() {
+    if (stationCtl) { stationCtl.abort(); stationCtl = null; }
+    if (geoCtl) { geoCtl.abort(); geoCtl = null; }
+    search.open = false;
+    searchDrop.hidden = true;
+    searchInput.setAttribute("aria-expanded", "false");
+  }
+  function resetSearchResults() {
+    if (stationCtl) { stationCtl.abort(); stationCtl = null; }
+    if (geoCtl) { geoCtl.abort(); geoCtl = null; }
+    search.stations = null; search.stationState = "idle"; search.places = null; search.placeState = "idle";
+  }
+  function renderSearch() {
+    const q = search.q;
+    if (!search.open || q.length < SEARCH_MIN) { searchDrop.hidden = true; searchInput.setAttribute("aria-expanded", "false"); return; }
+    const parts = [h("div", { class: "dsec", text: "จุดชาร์จ" })];
+    if (search.stationState === "loading" && !search.stations) parts.push(h("p", { class: "dmsg", text: "กำลังค้นหา…" }));
+    else if (search.stationState === "error") parts.push(h("p", { class: "dmsg err", text: "ค้นหาจุดชาร์จไม่สำเร็จ ลองใหม่อีกครั้ง" }));
+    else if (search.stations && !search.stations.length) parts.push(h("p", { class: "dmsg", text: "ไม่พบจุดชาร์จ" }));
+    else if (search.stations) {
+      for (const st of search.stations) {
+        const logo = h("div", { class: `logoc ${st.speed}` });
+        logo.innerHTML = brandInner(brandOf(st), "logo-img");
+        parts.push(h("button", { type: "button", class: "drow", onclick: () => pickStation(st) },
+          logo,
+          h("span", { class: "tx" }, h("b", { text: st.name }), h("span", { text: st.operator })),
+          st.distance_km != null ? h("span", { class: "d", text: `${st.distance_km} กม.` }) : null));
+      }
+    }
+    parts.push(h("button", {
+      type: "button", class: "drow q", disabled: search.placeState === "loading", onclick: () => runGeocode(),
+    }, h("span", { "aria-hidden": "true", text: "🔍" }), h("span", { class: "tx" }, h("b", { text: `ค้นหาสถานที่ "${q}"` }))));
+    if (search.placeState !== "idle") {
+      parts.push(h("div", { class: "dsec", text: "สถานที่" }));
+      if (search.placeState === "loading") parts.push(h("p", { class: "dmsg", text: "กำลังค้นหาสถานที่…" }));
+      else if (search.placeState === "error") parts.push(h("p", { class: "dmsg err", text: "ค้นหาสถานที่ไม่สำเร็จ ลองใหม่อีกครั้ง" }));
+      else if (!search.places.length) parts.push(h("p", { class: "dmsg", text: "ไม่พบสถานที่" }));
+      else {
+        for (const pl of search.places) {
+          parts.push(h("button", { type: "button", class: "drow", onclick: () => pickPlace(pl) },
+            h("span", { class: "pin", "aria-hidden": "true", text: "📍" }),
+            h("span", { class: "tx" }, h("b", { text: pl.display_name.split(",")[0].trim() || pl.display_name }), h("span", { text: pl.display_name }))));
+        }
+      }
+      if (search.placeState === "done") parts.push(h("div", { class: "dcredit", text: "ค้นหาสถานที่โดย © OpenStreetMap" }));
+    }
+    searchDrop.replaceChildren(...parts);
+    searchDrop.hidden = false;
+    searchInput.setAttribute("aria-expanded", "true");
+  }
+  async function runStations() {
+    const q = search.q;
+    if (q.length < SEARCH_MIN) return;
+    if (stationCtl) stationCtl.abort();
+    const ctl = (stationCtl = new AbortController());
+    search.stationState = "loading";
+    renderSearch();
+    const o = searchOrigin();
+    try {
+      const data = await api(`/api/stations?q=${encodeURIComponent(q)}&lat=${o.lat.toFixed(5)}&lng=${o.lng.toFixed(5)}`, { signal: ctl.signal });
+      if (ctl !== stationCtl) return;
+      search.stations = data.stations; search.stationState = "done";
+    } catch (e) {
+      if (e.name === "AbortError" || ctl !== stationCtl) return;
+      search.stationState = "error";
+    }
+    stationCtl = null;
+    renderSearch();
+  }
+  async function runGeocode() {
+    const q = search.q;
+    if (q.length < SEARCH_MIN || search.placeState === "loading") return;
+    if (geoCtl) geoCtl.abort();
+    const ctl = (geoCtl = new AbortController());
+    search.placeState = "loading";
+    renderSearch();
+    try {
+      const data = await api(`/api/geocode?q=${encodeURIComponent(q)}`, { signal: ctl.signal });
+      if (ctl !== geoCtl) return;
+      search.places = data.results || []; search.placeState = "done";
+    } catch (e) {
+      if (e.name === "AbortError" || ctl !== geoCtl) return;
+      search.placeState = "error";
+    }
+    geoCtl = null;
+    renderSearch();
+  }
+  function pickStation(st) {
+    closeSearch();
+    searchInput.blur();
+    openBookmark(st); // upsertMarker + flyTo + เปิด sheet
+  }
+  function pickPlace(pl) {
+    closeSearch();
+    searchInput.blur();
+    map.flyTo([pl.lat, pl.lng], 14); // moveend → loadViewport โหลดจุดชาร์จตามปกติ
+  }
+  const searchSoon = debounce(runStations, 300);
+  function onSearchInput() {
+    const q = searchInput.value.trim();
+    searchClear.hidden = searchInput.value === "";
+    if (q === search.q) return;
+    search.q = q;
+    resetSearchResults();
+    if (q.length < SEARCH_MIN) { searchSoon.cancel?.(); renderSearch(); return; }
+    search.open = true;
+    renderSearch();
+    searchSoon();
+  }
+  searchInput.addEventListener("input", onSearchInput);
+  searchInput.addEventListener("focus", () => {
+    toggleFilter(false); toggleBookmarks(false);
+    if (search.q.length >= SEARCH_MIN) { search.open = true; renderSearch(); }
+  });
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const q = searchInput.value.trim();
+      if (q.length < SEARCH_MIN) return;
+      if (q !== search.q) { search.q = q; resetSearchResults(); }
+      search.open = true;
+      if (!search.stations && search.stationState !== "loading") runStations();
+      runGeocode();
+    } else if (e.key === "Escape") { closeSearch(); searchInput.blur(); }
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && search.open) closeSearch(); });
+  searchClear.addEventListener("click", () => {
+    searchInput.value = ""; searchClear.hidden = true;
+    search.q = ""; resetSearchResults(); closeSearch();
+    searchInput.focus();
+  });
+
   // ---------- load stations for viewport ----------
-  let lastLoad = { count: 0, truncated: false, tooFar: false };
+  let lastLoad = { count: 0, truncated: false, tooFar: false, loading: false, mode: "" };
   let loadCtl = null;
+  // โหมดพิเศษ (hub / bookmark) โหลดทั่วประเทศ ไม่ผูก bbox และไม่สนซูมขั้นต่ำ
+  const loadMode = () => (filters.hub ? "h" : "") + (filters.bookmarked ? "b" : "");
   function updateStatus() {
-    if (filters.hub && !lastLoad.tooFar) {
+    if (lastLoad.loading) return; // อย่าทับ "กำลังโหลด…" ด้วยจำนวนเก่า
+    const mode = loadMode();
+    if (mode && !lastLoad.tooFar) {
+      if (lastLoad.mode !== mode) return; // ยังไม่เคยโหลดโหมดนี้เสร็จ
       let n = 0;
       for (const e of entries.values()) if (e.shown) n++;
-      return setStatus(`พบ Hub ${n.toLocaleString("th-TH")} จุด`);
+      const label = mode === "h" ? "พบ Hub" : mode === "b" ? "พบจุดที่บันทึกไว้" : "พบ Hub ที่บันทึกไว้";
+      return setStatus(`${label} ${n.toLocaleString("th-TH")} จุด`);
     }
     if (lastLoad.tooFar) return setStatus("ซูมเข้าเพื่อดูจุดชาร์จ");
     let shown = 0;
@@ -312,26 +516,30 @@
     setStatus(`พบ ${shown.toLocaleString("th-TH")} จุดในหน้าจอ${lastLoad.truncated ? " (ซูมเข้าเพื่อดูเพิ่ม)" : ""}`);
   }
   async function loadViewport() {
-    const hubMode = !!filters.hub;
-    if (!hubMode && map.getZoom() < MIN_FETCH_ZOOM) { lastLoad.tooFar = true; updateStatus(); return; }
+    const mode = loadMode();
+    const special = !!mode;
+    if (!special && map.getZoom() < MIN_FETCH_ZOOM) { loadCtl?.abort(); lastLoad.tooFar = true; lastLoad.loading = false; updateStatus(); return; }
     lastLoad.tooFar = false;
     const b = map.getBounds().pad(0.15);
     const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((n) => n.toFixed(5)).join(",");
-    const qs = hubMode ? "hub=1" : `bbox=${bbox}`;
+    // hub+bookmark พร้อมกัน → โหลด bookmark แล้วให้ passes() กรอง hub ซ้ำ
+    const path = filters.bookmarked ? "/api/bookmarks" : filters.hub ? "/api/stations?hub=1" : `/api/stations?bbox=${bbox}`;
     loadCtl?.abort();
     loadCtl = new AbortController();
+    lastLoad.loading = true;
     setStatus("กำลังโหลด…");
     try {
-      const data = await api(`/api/stations?${qs}`, { signal: loadCtl.signal });
+      const data = await api(path, { signal: loadCtl.signal });
       const seen = new Set();
       for (const st of data.stations) { seen.add(st.id); upsertMarker(st); }
       // จุดที่อยู่ในกรอบแต่ server ไม่ส่งมาแล้ว (ถูกลบ/หายจาก KML) → เอาออก (ถ้าไม่ถูกตัดที่ 500)
-      if (!hubMode && !data.truncated) for (const [id, e] of [...entries]) if (!seen.has(id) && b.contains(e.marker.getLatLng())) removeMarker(id);
+      if (!special && !data.truncated) for (const [id, e] of [...entries]) if (!seen.has(id) && b.contains(e.marker.getLatLng())) removeMarker(id);
       if (entries.size > MAX_CACHED) trimCache();
-      lastLoad = { count: data.count, truncated: data.truncated, tooFar: false };
+      lastLoad = { count: data.count, truncated: !!data.truncated, tooFar: false, loading: false, mode };
       updateStatus();
     } catch (e) {
       if (e.name === "AbortError") return;
+      lastLoad.loading = false;
       setStatus("โหลดจุดชาร์จไม่สำเร็จ");
       toast(e.message || "โหลดไม่สำเร็จ");
     }
@@ -371,7 +579,7 @@
     if (e) { e.marker.setIcon(markerIcon(e.st, false)); applyOne(e); }
     if (new URL(location.href).searchParams.has("s")) history.replaceState(null, "", location.pathname);
   }
-  map.on("click", () => { if (selectedId) closeSheet(); toggleFilter(false); });
+  map.on("click", () => { if (selectedId) closeSheet(); toggleFilter(false); toggleBookmarks(false); closeSearch(); });
 
   const navUrl = (st) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(st.lat + "," + st.lng)}&travelmode=driving`;
   const shareUrl = (st) => `${location.origin}/?s=${encodeURIComponent(st.id)}`;
@@ -396,6 +604,7 @@
 
     const buttons = [
       h("a", { class: "btn primary", href: navUrl(st), target: "_blank", rel: "noopener", text: "นำทาง" }),
+      h("button", { type: "button", class: "btn bm-toggle", "aria-pressed": String(!!st.bookmarked), text: st.bookmarked ? "★ บันทึกแล้ว" : "☆ บันทึก", onclick: (ev) => toggleBookmark(st, ev.currentTarget) }),
       h("button", { type: "button", class: "btn", text: "แชร์", onclick: () => shareStation(st) }),
       h("button", { type: "button", class: "btn", text: "แก้ไข", onclick: () => editStation(st) }),
     ];
@@ -411,6 +620,28 @@
     );
     sheet.classList.add("open"); sheet.setAttribute("aria-hidden", "false");
     document.body.classList.add("sheet-open");
+  }
+
+  async function toggleBookmark(st, btn) {
+    const want = !st.bookmarked;
+    btn.disabled = true;
+    try {
+      const url = `/api/bookmarks/${encodeURIComponent(st.id)}`;
+      const out = await withPin((pin) => api(url, {
+        method: want ? "PUT" : "DELETE", pin, body: want ? { created_by: store.get("ev_name") || undefined } : undefined,
+      }));
+      if (!out) return;
+      let updated = out;
+      if (!want) {
+        try { updated = await api(`/api/stations/${encodeURIComponent(st.id)}`); }
+        catch { updated = { ...(entries.get(st.id)?.st || st), bookmarked: false }; }
+      }
+      upsertMarker(updated);
+      if (selectedId === st.id) renderSheet(updated);
+      toast(want ? "บันทึกจุดนี้แล้ว" : "เอาออกจากที่บันทึกไว้แล้ว");
+      updateStatus();
+    } catch (e) { toast(e.message); }
+    finally { btn.disabled = false; }
   }
 
   async function shareStation(st) {
@@ -605,6 +836,7 @@
   }
   async function locateMe({ recenter = true } = {}) {
     const ll = await getPosition();
+    if (ll) lastGps = ll;
     if (!ll) { if (recenter) toast("อ่านตำแหน่งไม่ได้ — อนุญาตการเข้าถึงตำแหน่งในเบราว์เซอร์"); return false; }
     showUser(ll);
     if (recenter) map.setView(ll, 15);

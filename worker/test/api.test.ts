@@ -325,3 +325,83 @@ describe("hub filter", () => {
     expect(stations.every((s) => s.hub === false)).toBe(true);
   });
 });
+
+describe("bookmarks", () => {
+  const bmReq = (id: string, method: string, init: Parameters<typeof req>[1] = {}) =>
+    call(req(`/api/bookmarks/${encodeURIComponent(id)}`, { method, ...init }));
+  async function seed(...s: KmlStation[]) {
+    await sync(kmlOf(s));
+    return (await list()).stations;
+  }
+
+  it("GET /api/bookmarks ไม่ต้องใช้ PIN · ว่างตอนเริ่ม", async () => {
+    const res = await call(req("/api/bookmarks", { pin: null }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ stations: [], count: 0 });
+  });
+
+  it("PUT/DELETE ไม่มี PIN หรือ PIN ผิด = 401", async () => {
+    const [a] = await seed(A);
+    for (const method of ["PUT", "DELETE"]) {
+      expect((await bmReq(a.id, method, { pin: null, body: "{}" })).status).toBe(401);
+      expect((await bmReq(a.id, method, { pin: "wrong", body: "{}" })).status).toBe(401);
+    }
+    expect((await call(req("/api/bookmarks"))).status).toBe(200);
+    expect(((await (await call(req("/api/bookmarks"))).json()) as any).count).toBe(0);
+  });
+
+  it("PUT idempotent: แถวเดียว · created_at/created_by เดิมไม่เปลี่ยน · คืน StationDto bookmarked", async () => {
+    const [a] = await seed(A);
+    const r1 = await bmReq(a.id, "PUT", { body: JSON.stringify({ created_by: "หนุ่ม" }) });
+    expect(r1.status).toBe(200);
+    expect(((await r1.json()) as any).bookmarked).toBe(true);
+    const first = await env.DB.prepare("SELECT * FROM bookmarks").all<any>();
+    expect(first.results).toHaveLength(1);
+    await new Promise((r) => setTimeout(r, 5));
+    expect((await bmReq(a.id, "PUT", { body: JSON.stringify({ created_by: "คนอื่น" }) })).status).toBe(200);
+    const second = await env.DB.prepare("SELECT * FROM bookmarks").all<any>();
+    expect(second.results).toHaveLength(1);
+    expect(second.results[0].created_at).toBe(first.results[0].created_at);
+    expect(second.results[0].created_by).toBe("หนุ่ม");
+  });
+
+  it("PUT จุดที่ไม่มี หรือถูกลบ = 404", async () => {
+    expect((await bmReq("nope", "PUT", { body: "{}" })).status).toBe(404);
+    const created = (await (await call(req("/api/stations", { method: "POST", body: JSON.stringify({ name: "ทีม", lat: 13.72, lng: 100.52 }) }))).json()) as any;
+    await call(req(`/api/stations/${encodeURIComponent(created.id)}`, { method: "DELETE", body: "{}" }));
+    expect((await bmReq(created.id, "PUT", { body: "{}" })).status).toBe(404);
+  });
+
+  it("bookmarked true ใน bbox หลัง PUT และ false หลัง DELETE (DELETE ซ้ำได้ ok)", async () => {
+    const [a, b] = await seed(A, B);
+    expect((await list()).stations.every((s) => s.bookmarked === false)).toBe(true);
+    await bmReq(a.id, "PUT", { body: "{}" });
+    let { stations } = await list();
+    expect(stations.find((s) => s.id === a.id)!.bookmarked).toBe(true);
+    expect(stations.find((s) => s.id === b.id)!.bookmarked).toBe(false);
+    const d = await bmReq(a.id, "DELETE");
+    expect(d.status).toBe(200);
+    expect(await d.json()).toEqual({ ok: true });
+    expect((await bmReq(a.id, "DELETE")).status).toBe(200);
+    ({ stations } = await list());
+    expect(stations.every((s) => s.bookmarked === false)).toBe(true);
+  });
+
+  it("GET /api/bookmarks เรียงใหม่→เก่า พร้อม bookmark meta · จุดที่ถูกลบไม่ขึ้น", async () => {
+    const [a, b] = await seed(A, B);
+    await bmReq(a.id, "PUT", { body: JSON.stringify({ created_by: "ก" }) });
+    await new Promise((r) => setTimeout(r, 5));
+    await bmReq(b.id, "PUT", { body: JSON.stringify({ created_by: "ข" }) });
+    const user = (await (await call(req("/api/stations", { method: "POST", body: JSON.stringify({ name: "ทีม", lat: 13.72, lng: 100.52 }) }))).json()) as any;
+    await new Promise((r) => setTimeout(r, 5));
+    await bmReq(user.id, "PUT", { body: "{}" });
+    let data = (await (await call(req("/api/bookmarks", { pin: null }))).json()) as any;
+    expect(data.count).toBe(3);
+    expect(data.stations.map((s: any) => s.id)).toEqual([user.id, b.id, a.id]);
+    expect(data.stations[1].bookmark.created_by).toBe("ข");
+    expect(data.stations[0].bookmarked).toBe(true);
+    await call(req(`/api/stations/${encodeURIComponent(user.id)}`, { method: "DELETE", body: "{}" }));
+    data = (await (await call(req("/api/bookmarks"))).json()) as any;
+    expect(data.stations.map((s: any) => s.id)).toEqual([b.id, a.id]);
+  });
+});

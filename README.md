@@ -17,6 +17,8 @@ PWA แผนที่จุดชาร์จ EV ประเทศไทย �
 - แผงข้อมูลจุด: ยี่ห้อ ชนิดหัว จำนวน kW · ปุ่มนำทาง Google Maps · แชร์ลิงก์
 - ตัวกรองยี่ห้อ / ชนิดหัว / kW ขั้นต่ำ / ประเภทสถานี (Hub = สถานีชาร์จขนาดใหญ่ ดูได้ทั่วประเทศโดยไม่ต้องซูมเข้า · API `?hub=1`)
 - ทีมเพิ่มจุด (กดค้างบนแผนที่ หรือใช้ตำแหน่งปัจจุบัน) / แก้ข้อมูลหัวชาร์จ / ลบจุดที่ทีมเพิ่มเอง (soft delete) ด้วย Team PIN
+- Bookmark (ทีมใช้ร่วมกัน): กดดาวบนหมุด/แผงข้อมูลเพื่อบันทึกจุดที่ใช้บ่อย (ต้องใช้ Team PIN) · แผง ★ บนแถบบน · ตัวกรอง "★ เฉพาะที่บันทึกไว้" · เก็บใน D1 ตาราง `bookmarks`
+- ค้นหาบนหน้าหลัก: ค้นสถานีตามชื่อ/ที่อยู่/ยี่ห้อ (พร้อมระยะทาง · API `?q=`) และค้นสถานที่ผ่าน OSM Nominatim (กด Enter เท่านั้น ไม่มี autocomplete · `/api/geocode` cache 24 ชม. · ADR 0004)
 - ติดตั้งเป็น PWA ลงหน้าจอมือถือ
 
 ## Tech stack
@@ -58,7 +60,7 @@ TEAM_PIN ของ test ถูก inject ผ่าน miniflare bindings ใน 
 | `worker/src/index.ts` | router API + scheduled handler |
 | `worker/src/sync/{mymaps,parse}.ts` | sync KML (retry 3x, กันข้อมูลน้อยผิดปกติ) / parse KML + Description -> connectors |
 | `worker/src/{normalize,speed,auth}.ts` | Provider -> operator + slug · Speed class · PIN + rate limit |
-| `worker/schema.sql` | ตาราง `stations`, `station_overrides`, `rate_limits` |
+| `worker/schema.sql` | ตาราง `stations`, `station_overrides`, `rate_limits`, `bookmarks` |
 | `public/` | frontend (Leaflet), PWA, `logos/` |
 
 ## Deploy
@@ -75,6 +77,9 @@ npx wrangler d1 create ev-charger-uat      # / ev-charger-prd
 
 # 2) สร้างตาราง (<db> = ev-charger-uat | ev-charger-prd, <env> = uat | production)
 npx wrangler d1 execute <db> --env <env> --remote --file worker/schema.sql
+
+# หมายเหตุ: ถ้าแก้ schema (เพิ่มตาราง/คอลัมน์) ต้องรันคำสั่งข้อ 2 กับ D1 ของ env นั้นก่อน deploy ทุกครั้ง
+#   (schema.sql ใช้ CREATE TABLE IF NOT EXISTS รันซ้ำได้) ไม่งั้น API ที่ใช้ตารางใหม่จะ error
 
 # 3) ตั้ง TEAM_PIN (รันใน terminal จริง เพราะต้องพิมพ์ค่า secret เอง)
 npx wrangler secret put TEAM_PIN --env <env>
