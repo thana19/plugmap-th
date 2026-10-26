@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>DC EV Charging Station Thailand - Piyamate Wisanuvej</name>
+    <description><![CDATA[Listing DC charging stations only<br>รวมรวมโดย ปิยเมษฐ์ วิษณุเวช<br>แสดงเฉพาะสถานีชาร์จเร็วแบบ DC เท่านั้น]]></description>
+    <Style id="icon-1787-3949AB-labelson">
+      <IconStyle>
+        <color>ffab4939</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <Style id="icon-1787-DB4436-labelson">
+      <IconStyle>
+        <color>ff3644db</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <Style id="icon-1899-DB4436-labelson">
+      <IconStyle>
+        <color>ff3644db</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+        <hotSpot x="32" xunits="pixels" y="64" yunits="insetPixels"/>
+      </IconStyle>
+    </Style>
+        <Folder>
+      <name>PTT</name>
+      <Placemark>
+        <name>บิ๊กซี เพลซ สระบุรี</name>
+        <description><![CDATA[Name-EN: BigC Place Saraburi<br>Description: CCS2<br>Address: 514 ถ.พหลโยธิน ต.ปากเพรียว อ.เมืองสระบุรี สระบุรี 18000<br>Latitude: 14.5391089573<br>Longitude: 100.910758067<br>Provider: PTT]]></description>
+        <styleUrl>#icon-1899-DB4436-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Name-EN">
+            <value>BigC Place Saraburi</value>
+          </Data>
+          <Data name="Description">
+            <value>CCS2</value>
+          </Data>
+          <Data name="Address">
+            <value>514 ถ.พหลโยธิน ต.ปากเพรียว อ.เมืองสระบุรี สระบุรี 18000</value>
+          </Data>
+          <Data name="Latitude">
+            <value>14.5391089573</value>
+          </Data>
+          <Data name="Longitude">
+            <value>100.910758067</value>
+          </Data>
+          <Data name="Provider">
+            <value>PTT</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            100.910758067,14.5391089573,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>ลานจอดรถ ซียู สปอร์ต</name>
+        <description><![CDATA[Name-EN: CU Sport Zone Parking<br>Description: CCS2, Type 2<br>Address: 215 ซ.จุฬาลงกรณ์ 10 แขวงวังใหม่ เขตปทุมวัน กรุงเทพมหานคร 10330<br>Latitude: 13.74436<br>Longitude: 100.5239<br>Provider: PTT]]></description>
+        <styleUrl>#icon-1899-DB4436-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Name-EN">
+            <value>CU Sport Zone Parking</value>
+          </Data>
+          <Data name="Description">
+            <value>CCS2, Type 2</value>
+          </Data>
+          <Data name="Address">
+            <value>215 ซ.จุฬาลงกรณ์ 10 แขวงวังใหม่ เขตปทุมวัน กรุงเทพมหานคร 10330</value>
+          </Data>
+          <Data name="Latitude">
+            <value>13.74436</value>
+          </Data>
+          <Data name="Longitude">
+            <value>100.5239</value>
+          </Data>
+          <Data name="Provider">
+            <value>PTT</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            100.5239,13.74436,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>ReverSharger</name>
+      <Placemark>
+        <name>BYD Dreamcar Rayong Nern Pra</name>
+        <description><![CDATA[Power: 120 kW<br>Description: 2x CCS2: 120 kW, 2x Type2: 22 kW<br>Address: <br>Latitude: 12.685384648690034<br>Longitude: 101.21477726090299<br>Provider: Sharge<br>Operator: Sharge]]></description>
+        <styleUrl>#icon-1899-DB4436-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Power">
+            <value>120 kW</value>
+          </Data>
+          <Data name="Description">
+            <value>2x CCS2: 120 kW, 2x Type2: 22 kW</value>
+          </Data>
+          <Data name="Address">
+            <value/>
+          </Data>
+          <Data name="Latitude">
+            <value>12.685384648690034</value>
+          </Data>
+          <Data name="Longitude">
+            <value>101.21477726090299</value>
+          </Data>
+          <Data name="Provider">
+            <value>Sharge</value>
+          </Data>
+          <Data name="Operator">
+            <value>Sharge</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            101.214777260903,12.68538464869,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Bangchak Bgn-Baannadrem 50 kW</name>
+        <description><![CDATA[Power: 50 kW<br>Description: CCS2: 50 kW, CHAdeMO: 50 kW<br>Address: <br>Latitude: 8.880804298376631<br>Longitude: 99.29677589584409<br>Provider: Sharge<br>Operator: Sharge]]></description>
+        <styleUrl>#icon-1899-DB4436-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Power">
+            <value>50 kW</value>
+          </Data>
+          <Data name="Description">
+            <value>CCS2: 50 kW, CHAdeMO: 50 kW</value>
+          </Data>
+          <Data name="Address">
+            <value/>
+          </Data>
+          <Data name="Latitude">
+            <value>8.880804298376631</value>
+          </Data>
+          <Data name="Longitude">
+            <value>99.29677589584409</value>
+          </Data>
+          <Data name="Provider">
+            <value>Sharge</value>
+          </Data>
+          <Data name="Operator">
+            <value>Sharge</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            99.2967758958441,8.88080429837663,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>etc</name>
+      <Placemark>
+        <name>GWM แอทยูพาร์ค บางนา</name>
+        <description><![CDATA[Name-EN: <br>Power: <br>Description: <br>Address: <br>Latitude: 13.6321179<br>Longitude: 100.7153033<br>Provider: GWM]]></description>
+        <styleUrl>#icon-1899-DB4436-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Name-EN">
+            <value/>
+          </Data>
+          <Data name="Power">
+            <value/>
+          </Data>
+          <Data name="Description">
+            <value/>
+          </Data>
+          <Data name="Address">
+            <value/>
+          </Data>
+          <Data name="Latitude">
+            <value>13.6321179</value>
+          </Data>
+          <Data name="Longitude">
+            <value>100.7153033</value>
+          </Data>
+          <Data name="Provider">
+            <value>GWM</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            100.7153033,13.6321179,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>กรมส่งเสริมอุตสาหกรรม พระราม 6</name>
+        <description><![CDATA[Name-EN: <br>Power: 10 kW<br>Description: <br>Address: <br>Latitude: 13.762979<br>Longitude: 100.527844<br>Provider: EVolt]]></description>
+        <styleUrl>#icon-1899-DB4436-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Name-EN">
+            <value/>
+          </Data>
+          <Data name="Power">
+            <value>10 kW</value>
+          </Data>
+          <Data name="Description">
+            <value/>
+          </Data>
+          <Data name="Address">
+            <value/>
+          </Data>
+          <Data name="Latitude">
+            <value>13.762979</value>
+          </Data>
+          <Data name="Longitude">
+            <value>100.527844</value>
+          </Data>
+          <Data name="Provider">
+            <value>EVolt</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            100.527844,13.762979,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Brio Mall</name>
+        <description><![CDATA[Name-EN: <br>Power: <br>Description: 2x CCS2<br>Address: <br>Latitude: 13.7861455<br>Longitude: 100.3296899<br>Provider: ]]></description>
+        <styleUrl>#icon-1787-3949AB-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Name-EN">
+            <value/>
+          </Data>
+          <Data name="Power">
+            <value/>
+          </Data>
+          <Data name="Description">
+            <value>2x CCS2</value>
+          </Data>
+          <Data name="Address">
+            <value/>
+          </Data>
+          <Data name="Latitude">
+            <value>13.7861455</value>
+          </Data>
+          <Data name="Longitude">
+            <value>100.3296899</value>
+          </Data>
+          <Data name="Provider">
+            <value/>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            100.3296899,13.7861455,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>Bluport Hua Hin</name>
+        <description><![CDATA[Name-EN: <br>Power: 250 kW<br>Description: 3 Superchargers, Available 24/7<br>Address: 8, Phet Kasem Rd, Hua Hin, Prachuap Khiri Khan, 77110<br>Latitude: 12.547534<br>Longitude: 99.962676<br>Provider: Tesla]]></description>
+        <styleUrl>#icon-1899-DB4436-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Name-EN">
+            <value/>
+          </Data>
+          <Data name="Power">
+            <value>250 kW</value>
+          </Data>
+          <Data name="Description">
+            <value>3 Superchargers, Available 24/7</value>
+          </Data>
+          <Data name="Address">
+            <value>8, Phet Kasem Rd, Hua Hin, Prachuap Khiri Khan, 77110</value>
+          </Data>
+          <Data name="Latitude">
+            <value>12.547534</value>
+          </Data>
+          <Data name="Longitude">
+            <value>99.962676</value>
+          </Data>
+          <Data name="Provider">
+            <value>Tesla</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            99.962676,12.547534,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Altervim</name>
+      <Placemark>
+        <name>โลตัส นอร์ธ ราชพฤกษ์</name>
+        <description><![CDATA[Name-EN: Lotus's North Ratchapruek<br>Power: 150 kW<br>Description: 4x CCS2: 150 kW (1000V 200A), 2x Type2: 3 kW<br>Address: ถนนราชพฤกษ์, ตำบลอ้อมเกร็ด อำเภอปากเกร็ด นนทบุรี 11120<br>Latitude: 13.91254330746163<br>Longitude: 100.4514313531822<br>Provider: Altervim]]></description>
+        <styleUrl>#icon-1899-DB4436-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Name-EN">
+            <value><![CDATA[Lotus's North Ratchapruek]]></value>
+          </Data>
+          <Data name="Power">
+            <value>150 kW</value>
+          </Data>
+          <Data name="Description">
+            <value>4x CCS2: 150 kW (1000V 200A), 2x Type2: 3 kW</value>
+          </Data>
+          <Data name="Address">
+            <value>ถนนราชพฤกษ์, ตำบลอ้อมเกร็ด อำเภอปากเกร็ด นนทบุรี 11120</value>
+          </Data>
+          <Data name="Latitude">
+            <value>13.91254330746163</value>
+          </Data>
+          <Data name="Longitude">
+            <value>100.4514313531822</value>
+          </Data>
+          <Data name="Provider">
+            <value>Altervim</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            100.451431353182,13.9125433074616,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>EA</name>
+      <Placemark>
+        <name>A.C.T สาขาแมคโคร สาทร</name>
+        <description><![CDATA[Hours: Closed<br>Power: 90 kW<br>Description: Type1: 22 kW, CLOSED<br>Type2: 5 kW, CLOSED<br>CCS2: 90 kW, 200A, CLOSED<br>Bridgestone A.C.T (Thailand) Co.,Ltd. Makro Sathorn Branch<br>Address: ทุ่งวัดดอน, สาทร, กรุงเทพมหานคร<br>Latitude: 13.709774<br>Longitude: 100.535369<br>Provider: EA]]></description>
+        <styleUrl>#icon-1899-DB4436-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="Hours">
+            <value>Closed</value>
+          </Data>
+          <Data name="Power">
+            <value>90 kW</value>
+          </Data>
+          <Data name="Description">
+            <value>Type1: 22 kW, CLOSED
+Type2: 5 kW, CLOSED
+CCS2: 90 kW, 200A, CLOSED
+Bridgestone A.C.T (Thailand) Co.,Ltd. Makro Sathorn Branch</value>
+          </Data>
+          <Data name="Address">
+            <value>ทุ่งวัดดอน, สาทร, กรุงเทพมหานคร</value>
+          </Data>
+          <Data name="Latitude">
+            <value>13.709774</value>
+          </Data>
+          <Data name="Longitude">
+            <value>100.535369</value>
+          </Data>
+          <Data name="Provider">
+            <value>EA</value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            100.535369,13.709774,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>

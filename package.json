@@ -1,0 +1,24 @@
+{
+  "name": "ev-charger",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "EV-Charger Map PWA — Cloudflare Worker + D1 + static assets",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:migrate:local": "wrangler d1 execute DB --local --file=worker/schema.sql",
+    "sync:local": "curl -sS -X POST http://localhost:8787/api/admin/sync -H \"X-Team-Pin: ${TEAM_PIN:?ตั้ง TEAM_PIN ให้ตรงกับที่ wrangler dev ใช้}\""
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.23.0",
+    "@cloudflare/workers-types": "^5.20261026.1",
+    "@types/node": "^26.6.5",
+    "@vitest/runner": "^4.1.12",
+    "@vitest/snapshot": "^4.1.12",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12",
+    "wrangler": "^4.152.0"
+  }
+}

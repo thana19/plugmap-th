@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EV-Charger Plan</title>
+<style>
+:root{
+  --bg:#f6f7f9;--surface:#fff;--text:#1a2230;--muted:#5b6678;--line:#dfe3ea;
+  --accent:#0f766e;--accent-soft:#d9f2ee;
+  --dc:#ea7a10;--ac:#2563eb;--unk:#8b94a3;
+  --ok:#15803d;--bad:#b91c1c;--map:#e6efe3;--map2:#d5e3d0;--road:#fff;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0f141b;--surface:#18202b;--text:#e8ecf2;--muted:#9aa5b6;--line:#2a3544;
+    --accent:#2dd4bf;--accent-soft:#12312e;
+    --dc:#fb923c;--ac:#60a5fa;--unk:#7c8696;
+    --ok:#4ade80;--bad:#f87171;--map:#1e2a24;--map2:#25342c;--road:#34413a;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.65 system-ui,-apple-system,"Sukhumvit Set","Noto Sans Thai",sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.9rem;line-height:1.25;margin:8px 0 12px}
+h2{font-size:1.35rem;margin:0 0 14px;line-height:1.3}
+h3{font-size:1.05rem;margin:0 0 6px}
+section{margin-top:40px}
+p{margin:0 0 12px}
+.sub{color:var(--muted);font-size:.9rem}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.badge{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:4px 14px;font-size:.9rem;font-weight:600}
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card .big{font-size:1.5rem;font-weight:700}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.tablewrap{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{color:var(--muted);font-weight:600;font-size:.82rem}
+code{font:.86em ui-monospace,Menlo,monospace;background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:6px;word-break:break-word}
+.bar{height:8px;border-radius:4px;background:var(--line);min-width:90px}
+.bar i{display:block;height:100%;border-radius:4px;background:var(--accent)}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--text);font:14px system-ui,sans-serif}
+svg .n{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+svg .hi{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+svg .l{stroke:var(--muted);stroke-width:1.6;fill:none}
+svg .m{fill:var(--muted);font-size:12px}
+.checks{list-style:none;padding:0;margin:0}
+.checks li{padding:8px 0 8px 34px;position:relative;border-bottom:1px solid var(--line)}
+.checks li:last-child{border:0}
+.checks li:before{content:"";position:absolute;left:4px;top:13px;width:18px;height:18px;border:2px solid var(--accent);border-radius:5px}
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin:16px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.dot{width:16px;height:16px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:inline-block}
+.dc{background:var(--dc)}.ac{background:var(--ac)}.unk{background:var(--unk)}
+.phone{width:360px;max-width:100%;margin:0 auto;border:10px solid #222;border-radius:36px;background:var(--surface);overflow:hidden;position:relative;height:640px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.mapx{position:absolute;inset:0;background:linear-gradient(135deg,var(--map),var(--map2))}
+.mapx .r{position:absolute;background:var(--road);opacity:.8}
+.lp{position:absolute;width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid var(--c);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.35);transform-origin:50% 100%}
+.lp:after{content:"";position:absolute;left:50%;bottom:-8px;width:10px;height:10px;background:#fff;border-right:3px solid var(--c);border-bottom:3px solid var(--c);transform:translateX(-50%) rotate(45deg);z-index:-1}
+.lp.dc{--c:var(--dc)}.lp.ac{--c:var(--ac)}.lp.unk{--c:var(--unk)}
+.lp.sel{transform:scale(1.3);z-index:3}
+.lg{font:800 10px/1 system-ui,sans-serif;letter-spacing:-.3px;white-space:nowrap}
+.lg.ptt{color:#0b4ea2}.lg.pea{color:#6d2a8f}.lg.ea{color:#00875a;font-size:13px}.lg.elex{color:#d4380d}.lg.mg{color:#c41230;font-size:12px}
+.logoc{width:34px;height:34px;border-radius:50%;background:#fff;border:3px solid var(--dc);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.pophead{display:flex;gap:10px;align-items:center}
+.lgs{display:flex;flex-wrap:wrap;gap:14px 22px;margin:14px 0}
+.lgs .it{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);text-align:center;min-width:92px}
+.lgs .lp{position:relative}
+.abbr{font:800 11px/1 system-ui,sans-serif;color:#fff;background:#0f766e;border-radius:50%;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.search{position:absolute;top:12px;left:12px;right:12px;background:var(--surface);border-radius:12px;padding:9px 14px;font-size:.9rem;color:var(--muted);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.fab{position:absolute;right:14px;bottom:318px;background:var(--accent);color:#06201d;font-weight:700;border-radius:999px;padding:11px 18px;font-size:.95rem;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+.pop{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:16px;box-shadow:0 -4px 16px rgba(0,0,0,.25)}
+.pop h3{font-size:1rem;margin-bottom:2px}
+.pop .row{font-size:.92rem;margin:4px 0;display:flex;gap:8px;align-items:center}
+.btns{display:flex;gap:8px;margin-top:12px}
+.btns b{flex:1;text-align:center;padding:10px 4px;border-radius:10px;font-size:.92rem;border:1px solid var(--line)}
+.btns b.p{background:var(--accent);color:#06201d;border-color:var(--accent)}
+.attr{position:absolute;left:6px;bottom:340px;font-size:10px;color:var(--muted);background:var(--surface);padding:0 4px;border-radius:4px;opacity:.9}
+.steps{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.steps span{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-size:.92rem}
+.steps em{font-style:normal;color:var(--muted)}
+ul.plain{padding-left:20px;margin:0}
+ul.plain li{margin:4px 0}
+footer{margin-top:40px;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="sub">แผนโปรเจกต์ · อัปเดต 2026-10-26 10:05</div>
+  <h1>EV-Charger — แผนที่จุดชาร์จ EV ประเทศไทย</h1>
+  <p>PWA แผนที่รวมจุดชาร์จทุกยี่ห้อสำหรับทีมร้าน EV ใช้บนมือถือ เห็นจุดรอบตัวจาก GPS กดหมุดดู ยี่ห้อ ชนิดหัว จำนวนหัว และ kW หมุดเป็นโลโก้ยี่ห้อจริง แยกความเร็วชาร์จด้วยสีขอบหมุด กดนำทางไป Google Maps ได้ ทีมเพิ่ม แก้ และลบจุดที่เพิ่มเองได้ ข้อมูลตั้งต้นจาก Google My Maps "DC EV Charging Station Thailand" (3,007 จุดชาร์จเร็ว DC) ซิงก์ทุกคืน รันบน Cloudflare (Worker + D1) ตัดการรายงานสถานะ ว่าง/ไม่ว่าง ออกจาก MVP ไปไว้ Phase 2</p>
+  <div class="badges">
+    <span class="badge">Web / PWA</span><span class="badge">Cloudflare Worker + D1</span><span class="badge">Google My Maps (DC)</span><span class="badge">ev.thana.in.th</span>
+  </div>
+</header>
+
+<section>
+  <h2>1. ผล spike: เลือกแหล่งข้อมูล</h2>
+  <div class="cards">
+    <div class="card" style="border-color:var(--accent)"><h3>Google My Maps (KML)</h3><div class="big ok">✅ 3,007 จุด (DC)</div><p class="sub"><b>เลือกใช้</b> · DC EV Charging Station Thailand โดย ปิยเมษฐ์ วิษณุเวช · ไม่ต้องใช้ key · ไม่มี licence → ใช้ในทีม + ใส่เครดิต</p></div>
+    <div class="card"><h3>OpenStreetMap</h3><div class="big bad">ไม่ใช้แล้ว</div><p class="sub">ได้ 307 จุด kW 10% · ใช้แค่ tiles เป็นแผนที่พื้นหลัง (ADR 0002)</p></div>
+    <div class="card"><h3>Open Charge Map</h3><div class="big bad">ไม่ผ่าน</div><p class="sub">ขอ API key ไม่ได้ ไม่มี key ตอบ 403</p></div>
+    <div class="card"><h3>Google Places</h3><div class="big bad">ไม่ผ่าน</div><p class="sub">403 ทุกครั้ง และต้องแสดงบน Google Map, cache ไม่ได้</p></div>
+  </div>
+  <div class="tablewrap"><table>
+    <tr><th>เทียบ</th><th>My Maps</th><th>OSM</th></tr>
+    <tr><td>จำนวนจุด</td><td>3,007</td><td>307</td></tr>
+    <tr><td>มี kW</td><td>~54% <div class="bar"><i style="width:54%"></i></div></td><td>10% <div class="bar"><i style="width:10%"></i></div></td></tr>
+    <tr><td>Provider / Operator</td><td>100%</td><td>64%</td></tr>
+    <tr><td>ชนิดหัว</td><td>อยู่ในข้อความ Description (ว่าง 176 จุด)</td><td>17%</td></tr>
+    <tr><td>ที่อยู่ / ชื่ออังกฤษ</td><td>86% / 48%</td><td>-</td></tr>
+    <tr><td>ประเภท</td><td>DC อย่างเดียว</td><td>DC + AC</td></tr>
+  </table></div>
+  <p class="sub" style="margin-top:10px">Layer: PTT 1,216 · PEA 428 · EA 361 · Sharge 351 · EleX 260 · MG 150 · Altervim 118 · อื่น ๆ 123 · Trade-off: <b>มีเฉพาะ DC</b> จุด AC มาจากทีมเพิ่มเองเท่านั้น · ข้อมูลของอาสาสมัครคนเดียว ต้องขออนุญาตผู้เขียนก่อนเปิดสาธารณะ</p>
+</section>
+
+<section>
+  <h2>2. ผังระบบ</h2>
+  <svg viewBox="0 0 720 360" role="img" aria-label="ผังระบบ EV-Charger">
+    <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+    <rect class="n" x="20" y="40" width="150" height="70" rx="12"/><text x="95" y="70" text-anchor="middle">มือถือ (PWA)</text><text class="m" x="95" y="92" text-anchor="middle">Leaflet + OSM tiles</text>
+    <rect class="hi" x="270" y="40" width="180" height="70" rx="12"/><text x="360" y="70" text-anchor="middle">Cloudflare Worker</text><text class="m" x="360" y="92" text-anchor="middle">/api/* + static</text>
+    <rect class="n" x="550" y="40" width="150" height="70" rx="12"/><text x="625" y="70" text-anchor="middle">D1 (SQLite)</text><text class="m" x="625" y="92" text-anchor="middle">stations, overrides</text>
+    <path class="l" d="M170 75H268" marker-end="url(#a)"/><path class="l" d="M450 75H548" marker-end="url(#a)"/>
+    <rect class="n" x="270" y="170" width="180" height="56" rx="12"/><text x="360" y="203" text-anchor="middle">Cron 02:00 (ไทย)</text>
+    <rect class="n" x="550" y="170" width="150" height="56" rx="12"/><text x="625" y="196" text-anchor="middle">Google My Maps</text><text class="m" x="625" y="214" text-anchor="middle">KML (3,007 จุด)</text>
+    <path class="l" d="M450 198H548" marker-end="url(#a)"/>
+    <path class="l" d="M360 170V112" marker-end="url(#a)"/>
+    <text class="m" x="460" y="190">ดึง KML ทุกคืน</text>
+    <path class="l" stroke-dasharray="5 4" d="M625 170V112" marker-end="url(#a)"/>
+    <text class="m" x="632" y="145">upsert</text>
+    <rect class="n" x="20" y="270" width="150" height="56" rx="12"/><text x="95" y="303" text-anchor="middle">ปุ่ม "นำทาง"</text>
+    <rect class="n" x="270" y="270" width="180" height="56" rx="12"/><text x="360" y="303" text-anchor="middle">Google Maps</text>
+    <path class="l" d="M95 110V268" marker-end="url(#a)"/><path class="l" d="M170 298H268" marker-end="url(#a)"/>
+    <text class="m" x="460" y="303">เปิดลิงก์ dir/?destination=</text>
+  </svg>
+</section>
+
+<section>
+  <h2>3. ฟีเจอร์ MVP</h2>
+  <ul class="checks">
+    <li>เปิดแอปแล้วเห็นจุดชาร์จรอบตัวจาก GPS</li>
+    <li>เลื่อนแผนที่แล้วโหลดจุดอัตโนมัติ</li>
+    <li>กดหมุดเห็น ยี่ห้อ ชนิดหัว จำนวน kW</li>
+    <li>เห็นยี่ห้อจากโลโก้บนหมุด · แยก DC / AC จากสีขอบหมุด</li>
+    <li>ปุ่มนำทางเปิด Google Maps · ปุ่มแชร์ลิงก์</li>
+    <li>เพิ่มจุดใหม่ (กดค้างบนแผนที่ หรือใช้ตำแหน่งปัจจุบัน)</li>
+    <li>แก้ข้อมูลหัวชาร์จของจุดที่ข้อมูลไม่ครบ</li>
+    <li>ลบจุดที่ทีมเพิ่มเอง (ต้อง PIN, soft delete)</li>
+    <li>กรองตามยี่ห้อ / ชนิดหัว / kW ขั้นต่ำ</li>
+    <li>ติดตั้งลงหน้าจอมือถือ (PWA)</li>
+  </ul>
+  <div class="legend">
+    <span><i class="dot dc"></i>ขอบส้ม · DC เร็ว (≥ 50 kW หรือ CCS2 / CHAdeMO / GB/T DC)</span>
+    <span><i class="dot ac"></i>ขอบน้ำเงิน · AC (Type 2 / Type 1 หรือ &lt; 50 kW)</span>
+    <span><i class="dot unk"></i>ขอบเทา · ไม่ทราบ</span>
+  </div>
+  <p class="sub" style="margin-top:8px">โลโก้ในหมุดบอกยี่ห้อ · สีขอบ 3px บอกความเร็วชาร์จ</p>
+</section>
+
+<section>
+  <h2>4. หมุดโลโก้</h2>
+  <p>ตัดสินใจ 2026-10-26 (ADR 0003): โลโก้จริงของยี่ห้ออยู่ในหมุดวงกลมพื้นขาว ~36px ขอบ 3px สีตามความเร็วชาร์จ มีหางชี้ตำแหน่งจริง หมุดที่เลือกขยายใหญ่ขึ้น</p>
+  <div class="lgs">
+    <div class="it"><div class="lp dc"><span class="lg ptt">PTT</span></div>ขอบส้ม · DC เร็ว</div>
+    <div class="it"><div class="lp ac"><span class="lg pea">PEA</span></div>ขอบน้ำเงิน · AC</div>
+    <div class="it"><div class="lp unk"><span class="lg ea">EA</span></div>ขอบเทา · ไม่ทราบ</div>
+    <div class="it"><div class="lp dc"><span class="abbr" style="background:#ea4c89">HAUP</span></div>ไม่มีโลโก้ → ตัวย่อบนสีแบรนด์</div>
+  </div>
+  <ul class="plain">
+    <li>ไม่มีไฟล์โลโก้ หรือรูปโหลดไม่สำเร็จ (<code>onerror</code>) → ตัวย่อ 2–4 ตัวอักษรบนสีแบรนด์</li>
+    <li>ซูมออกยังเป็น cluster ตัวเลข (Leaflet.markercluster) · โลโก้แสดงเมื่อซูมเข้า เพื่อประสิทธิภาพกับ ~3,000 จุด</li>
+    <li>โลโก้ ~14 ยี่ห้อ ดาวน์โหลดจากเว็บทางการเท่านั้น (SVG บนเว็บ &gt; apple-touch-icon &gt; favicon) แปลงเป็น PNG 96×96 ที่ <code>public/logos/&lt;slug&gt;.png</code> รวม &lt; 300 KB</li>
+    <li>Manifest <code>public/logos/logos.json</code>: <code>{ slug, operator, color, abbr, file, source_url, fetched_at }</code> · Worker ส่ง <code>operator_slug</code> ใน API</li>
+    <li>โลโก้เป็นเครื่องหมายการค้าของเจ้าของ ใช้ในทีมเท่านั้น ต้องตรวจก่อนเปิดสาธารณะ (เงื่อนไขเดียวกับข้อมูล My Maps)</li>
+  </ul>
+</section>
+
+<section>
+  <h2>5. Mockup หน้าจอมือถือ</h2>
+  <div class="phone">
+    <div class="mapx">
+      <div class="r" style="left:-10%;top:30%;width:130%;height:10px;transform:rotate(-12deg)"></div>
+      <div class="r" style="left:40%;top:-5%;width:10px;height:70%;transform:rotate(18deg)"></div>
+      <div class="r" style="left:-5%;top:62%;width:120%;height:8px;transform:rotate(6deg)"></div>
+      <div class="lp dc" style="left:60px;top:120px"><span class="lg ptt">PTT</span></div>
+      <div class="lp ac" style="left:240px;top:100px"><span class="lg pea">PEA</span></div>
+      <div class="lp unk" style="left:50px;top:215px"><span class="lg mg">MG</span></div>
+      <div class="lp ac" style="left:280px;top:165px"><span class="lg elex">EleX</span></div>
+      <div class="lp dc" style="left:150px;top:185px"><span class="lg ea">EA</span></div>
+      <div class="lp dc sel" style="left:130px;top:100px"><span class="lg ptt">PTT</span></div>
+    </div>
+    <div class="search">ค้นหาจุดชาร์จ / ยี่ห้อ</div>
+    <div class="attr">© OpenStreetMap contributors</div>
+    <div class="fab">+ เพิ่มจุด</div>
+    <div class="pop">
+      <div class="pophead"><span class="logoc"><span class="lg ptt">PTT</span></span><h3>PTT EV Station PluZ — ปตท. วิภาวดี</h3></div>
+      <div class="row sub">PTT Vibhavadi · เปิด 24 Hr</div>
+      <div class="row sub">ถนนวิภาวดีรังสิต แขวงจตุจักร กรุงเทพฯ</div>
+      <div class="row"><i class="dot dc"></i> DC เร็ว</div>
+      <div class="row">CCS2 120 kW ×2</div>
+      <div class="row">Type 2 22 kW ×1</div>
+      <div class="btns"><b class="p">นำทาง</b><b>แชร์</b><b>แก้ไข</b></div>
+      <div class="row sub" style="font-size:.7rem;margin-top:8px">ข้อมูล: DC EV Charging Station Thailand โดย ปิยเมษฐ์ วิษณุเวช (Google My Maps)</div>
+    </div>
+  </div>
+  <p class="sub" style="text-align:center;margin-top:10px">ตัวอย่างข้อมูลสมมติ · ตัวอักษรในวงกลมคือ placeholder แทนโลโก้จริง (ไม่ได้ฝังรูปโลโก้)</p>
+</section>
+
+<section>
+  <h2>6. API และ D1</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Endpoint</th><th>หมายเหตุ</th></tr>
+    <tr><td><code>GET /api/stations?bbox=</code></td><td>max 500 จุด, merge override, ซ่อนจุดที่ถูกลบ</td></tr>
+    <tr><td><code>GET /api/stations/:id</code></td><td>รายละเอียดจุด · response มี <code>operator_slug</code> (ใช้หาโลโก้)</td></tr>
+    <tr><td><code>POST /api/stations</code></td><td>ต้อง PIN</td></tr>
+    <tr><td><code>PATCH /api/stations/:id</code></td><td>ต้อง PIN, เขียน override</td></tr>
+    <tr><td><code>DELETE /api/stations/:id</code></td><td>ต้อง PIN, เฉพาะ source <code>user</code> (mymaps = 403), soft delete</td></tr>
+    <tr><td><code>POST /api/admin/sync</code></td><td>ต้อง PIN, สั่ง sync เอง</td></tr>
+  </table></div>
+  <div class="tablewrap"><table>
+    <tr><th>ตาราง D1</th><th>คอลัมน์หลัก</th></tr>
+    <tr><td><code>stations</code></td><td>id (<code>mymaps:&lt;hash&gt;</code> / <code>user:&lt;uuid&gt;</code>), source (<code>mymaps</code> | <code>user</code>), name, <code>name_en</code>, <code>address</code>, <code>hours</code>, operator, lat, lng, connectors_json, <code>raw_json</code>, updated_at, deleted, <code>deleted_by</code>, <code>deleted_at</code></td></tr>
+    <tr><td><code>station_overrides</code></td><td>station_id, name, operator, connectors_json, edited_by, edited_at</td></tr>
+  </table></div>
+  <p class="sub" style="margin-top:10px">KML ไม่มี id คงที่ → id = hash ของพิกัด(ปัดเศษ)+ชื่อ · ถ้าผู้เขียนขยับ/เปลี่ยนชื่อหมุด override เดิมจะกำพร้า (เก็บไว้ ไม่ลบ) · จุดที่หายจาก KML = <code>deleted=1</code></p>
+  <p class="sub" style="margin-top:10px">PIN ส่งใน header <code>X-Team-Pin</code> (secret <code>TEAM_PIN</code>) · rate limit เขียน 30 ครั้ง/ชม./IP</p>
+</section>
+
+<section>
+  <h2>7. Modules และแผนทดสอบ</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Module</th><th>ไฟล์</th><th>หน้าที่</th></tr>
+    <tr><td>Worker router</td><td><code>worker/src/index.ts</code></td><td>route API, scheduled handler</td></tr>
+    <tr><td>My Maps sync</td><td><code>worker/src/sync/mymaps.ts</code></td><td>ดึง KML, retry, upsert, mark deleted</td></tr>
+    <tr><td>KML parser</td><td><code>worker/src/sync/parse.ts</code></td><td>ExtendedData + Description เป็น connectors_json</td></tr>
+    <tr><td>Operator normalizer</td><td><code>worker/src/normalize.ts</code></td><td>map ชื่อ Operator + <code>operator_slug</code></td></tr>
+    <tr><td>Speed classifier</td><td><code>speed</code> (client/Worker)</td><td>connectors เป็นสีหมุด</td></tr>
+    <tr><td>Auth / PIN</td><td><code>worker/src/auth.ts</code></td><td>ตรวจ PIN, rate limit</td></tr>
+    <tr><td>Schema</td><td><code>worker/schema.sql</code></td><td>ตาราง + index</td></tr>
+    <tr><td>Frontend</td><td><code>public/*</code></td><td>แผนที่, UI, PWA, หมุดโลโก้</td></tr>
+    <tr><td>Brand logos</td><td><code>public/logos/</code></td><td>โลโก้ 96×96 + <code>logos.json</code></td></tr>
+  </table></div>
+  <div class="cards" style="margin-top:14px">
+    <div class="card"><h3>Unit (vitest)</h3><ul class="plain"><li>parse: ตัวอย่าง Description จริง (<code>2x CCS2: 120 kW, 2x Type2: 22 kW</code> ฯลฯ), fallback kW จาก Power, KML fixture ~5 จุด, id stability</li><li>normalize: Provider เป็นชื่อมาตรฐาน + <code>operator_slug</code></li><li>ทุก Provider ใน KML fixture มี entry ใน <code>logos.json</code></li><li>Speed class: ≥50 kW, CCS2/CHAdeMO/GB/T, AC, ไม่ทราบ, ขอบ 49/50</li></ul></div>
+    <div class="card"><h3>Integration (D1 local)</h3><ul class="plain"><li>bbox query</li><li>POST/PATCH/DELETE ไม่มี PIN = 401</li><li>DELETE source mymaps = 403, user สำเร็จ</li><li>จุดที่ถูกลบไม่โผล่ใน bbox</li><li>override ไม่ถูก sync ทับ</li><li>จุดที่หายจาก KML = deleted</li><li>sync ล้มเหลว ข้อมูลเดิมอยู่</li></ul></div>
+    <div class="card"><h3>E2E / UAT</h3><ul class="plain"><li>DevTools จอมือถือ: GPS mock, สีขอบหมุด, โลโก้ + fallback ตัวย่อ (<code>file</code> null / <code>onerror</code>), นำทาง, เพิ่ม/ลบจุด</li><li>ทดสอบมือถือจริงที่ ev-uat</li></ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>8. Phase 2 และการ Deploy</h2>
+  <div class="card">
+    <h3>Phase 2</h3>
+    <ul class="plain"><li>รายงานสถานะ ว่าง/ไม่ว่าง (ตัดออกจาก MVP)</li><li>จุด AC (OSM/OCM) — My Maps มีแต่ DC</li><li>Open Charge Map (เมื่อได้ key)</li><li>หน้า admin แสดง override กำพร้า</li><li>Google Places (เมื่อ key ใช้ได้)</li><li>filter ขั้นสูง</li></ul>
+  </div>
+  <h3 style="margin-top:20px">ขั้นตอน Deploy (ถามพี่หนุ่มก่อนทุกครั้ง)</h3>
+  <div class="steps">
+    <span>UAT · ev-uat.thana.in.th</span><em>→</em><span>ทดสอบ</span><em>→</em><span>PRD · ev.thana.in.th</span><em>→</em><span>git push</span>
+  </div>
+  <p class="sub" style="margin-top:14px">ตั้ง PIN ตอน deploy: <code>wrangler secret put TEAM_PIN</code> · แผนที่พื้นหลัง © OpenStreetMap contributors · ข้อมูลจุดชาร์จ: DC EV Charging Station Thailand โดย ปิยเมษฐ์ วิษณุเวช (Google My Maps) · ใช้ในทีม ขออนุญาตผู้เขียนและตรวจเครื่องหมายการค้าโลโก้ก่อนเปิดสาธารณะ</p>
+</section>
+
+<footer>เอกสารอ้างอิง: CONTEXT.md · docs/adr/0001-data-sources.md · docs/adr/0002-mymaps-replaces-osm.md · docs/adr/0003-brand-logo-markers.md · docs/prd/ev-charger-map.md</footer>
+</main>
+</body>
+</html>

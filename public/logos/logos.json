@@ -1,0 +1,142 @@
+[
+  {
+    "slug": "ptt",
+    "operator": "PTT EV Station PluZ",
+    "color": "#1F4FA3",
+    "abbr": "PTT",
+    "file": "ptt.png",
+    "source_url": "https://apps.apple.com/th/app/id6535679105",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "pea",
+    "operator": "PEA Volta",
+    "color": "#6B2C91",
+    "abbr": "PEA",
+    "file": "pea.png",
+    "source_url": "https://apps.apple.com/th/app/id1503297093",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "ea",
+    "operator": "EA Anywhere",
+    "color": "#7AB800",
+    "abbr": "EA",
+    "file": "ea.png",
+    "source_url": "https://apps.apple.com/th/app/id6480576942",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "elexa",
+    "operator": "EleXA (EGAT)",
+    "color": "#0047BB",
+    "abbr": "EleX",
+    "file": "elexa.png",
+    "source_url": "https://apps.apple.com/th/app/id1557651291",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "mea",
+    "operator": "MEA EV",
+    "color": "#F26522",
+    "abbr": "MEA",
+    "file": "mea.png",
+    "source_url": "https://apps.apple.com/th/app/id1321755208",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "sharge",
+    "operator": "Sharge",
+    "color": "#111111",
+    "abbr": "SHG",
+    "file": "sharge.png",
+    "source_url": "https://apps.apple.com/th/app/id1492566430",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "altervim",
+    "operator": "Altervim",
+    "color": "#2E7D32",
+    "abbr": "ALV",
+    "file": "altervim.png",
+    "source_url": "https://apps.apple.com/th/app/id1623559338",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "tesla",
+    "operator": "Tesla",
+    "color": "#E31937",
+    "abbr": "TSL",
+    "file": "tesla.png",
+    "source_url": "https://apps.apple.com/th/app/id582007913",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "galvanic",
+    "operator": "Galvanic",
+    "color": "#6CC24A",
+    "abbr": "GLV",
+    "file": "galvanic.png",
+    "source_url": "https://apps.apple.com/th/app/id1639079783",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "evolt",
+    "operator": "EVolt",
+    "color": "#F7941D",
+    "abbr": "EVO",
+    "file": "evolt.png",
+    "source_url": "https://apps.apple.com/th/app/id1471528625",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "onecharge",
+    "operator": "OneCharge",
+    "color": "#3BB54A",
+    "abbr": "ONE",
+    "file": "onecharge.png",
+    "source_url": "https://apps.apple.com/th/app/id1626951113",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "haup",
+    "operator": "Haup",
+    "color": "#1E6FD9",
+    "abbr": "HAUP",
+    "file": "haup.png",
+    "source_url": "https://apps.apple.com/th/app/id1483563985",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "mg",
+    "operator": "MG",
+    "color": "#C8102E",
+    "abbr": "MG",
+    "file": "mg.png",
+    "source_url": "https://apps.apple.com/th/app/id1614430167",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  },
+  {
+    "slug": "gwm",
+    "operator": "GWM",
+    "color": "#222222",
+    "abbr": "GWM",
+    "file": "gwm.png",
+    "source_url": "https://apps.apple.com/th/app/id1531651004",
+    "source_note": "App Store app icon (official publisher verified via iTunes lookup)",
+    "fetched_at": "2026-10-26 10:20"
+  }
+]

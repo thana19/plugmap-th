@@ -1,0 +1,321 @@
+// Worker router (PRD: API) — static assets ถูกเสิร์ฟก่อนโดย Workers Static Assets
+// request ที่ไม่ตรงไฟล์ใน public/ ตกมาที่นี่
+
+import { checkPin, clientIp, consumeWriteQuota } from "./auth";
+import { lookupOperator, normalizeProvider, slugForOperator } from "./normalize";
+import { classifySpeed, type Connector, type SpeedClass } from "./speed";
+import { syncMyMaps } from "./sync/mymaps";
+
+export interface Env {
+  DB: D1Database;
+  TEAM_PIN?: string;
+}
+
+const MAX_BBOX_RESULTS = 500;
+
+interface StationRow {
+  id: string;
+  source: "mymaps" | "user";
+  name: string;
+  name_en: string | null;
+  address: string | null;
+  hours: string | null;
+  operator: string | null;
+  lat: number;
+  lng: number;
+  connectors_json: string;
+  ov_name: string | null;
+  ov_operator: string | null;
+  ov_connectors_json: string | null;
+  ov_edited_by: string | null;
+  ov_edited_at: string | null;
+}
+
+export interface StationDto {
+  id: string;
+  source: "mymaps" | "user";
+  name: string;
+  name_en: string | null;
+  address: string | null;
+  hours: string | null;
+  operator: string;
+  operator_slug: string | null;
+  lat: number;
+  lng: number;
+  connectors: Connector[];
+  speed: SpeedClass;
+  edited: boolean;
+}
+
+const SELECT_STATION = `SELECT s.id, s.source, s.name, s.name_en, s.address, s.hours, s.operator, s.lat, s.lng, s.connectors_json,
+    o.name AS ov_name, o.operator AS ov_operator, o.connectors_json AS ov_connectors_json,
+    o.edited_by AS ov_edited_by, o.edited_at AS ov_edited_at
+  FROM stations s LEFT JOIN station_overrides o ON o.station_id = s.id`;
+
+function json(data: unknown, status = 200, headers: HeadersInit = {}): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8", ...headers },
+  });
+}
+
+const err = (status: number, message: string) => json({ error: message }, status);
+
+function parseConnectorsJson(s: string | null | undefined): Connector[] {
+  if (!s) return [];
+  try {
+    const v = JSON.parse(s);
+    return Array.isArray(v) ? (v as Connector[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** merge override (ฟิลด์ที่ไม่ null ทับของเดิม) แล้วแนบ operator_slug + speed */
+export function toDto(r: StationRow): StationDto {
+  const operator = r.ov_operator ?? r.operator ?? "ไม่ระบุ";
+  const connectors = r.ov_connectors_json != null ? parseConnectorsJson(r.ov_connectors_json) : parseConnectorsJson(r.connectors_json);
+  return {
+    id: r.id,
+    source: r.source,
+    name: r.ov_name ?? r.name,
+    name_en: r.name_en,
+    address: r.address,
+    hours: r.hours,
+    operator,
+    operator_slug: slugForOperator(operator),
+    lat: r.lat,
+    lng: r.lng,
+    connectors,
+    speed: classifySpeed(connectors),
+    edited: r.ov_edited_at != null,
+  };
+}
+
+// ---------- input validation ----------
+
+function str(v: unknown, max: number): string | null | undefined {
+  if (v === undefined) return undefined;
+  if (v === null) return null;
+  if (typeof v !== "string") throw new Error("expected string");
+  const t = v.trim();
+  if (t.length > max) throw new Error(`string too long (max ${max})`);
+  return t === "" ? null : t;
+}
+
+function sanitizeConnectors(v: unknown): Connector[] {
+  if (!Array.isArray(v) || v.length > 20) throw new Error("connectors must be an array (max 20)");
+  return v.map((c) => {
+    if (typeof c !== "object" || c === null) throw new Error("invalid connector");
+    const { type, kw, count } = c as Record<string, unknown>;
+    const t = type == null || type === "" ? null : String(type).trim().slice(0, 40);
+    const k = kw == null || kw === "" ? null : Number(kw);
+    const n = count == null || count === "" ? null : Number(count);
+    if (k !== null && (!Number.isFinite(k) || k <= 0 || k > 1500)) throw new Error("invalid kw");
+    if (n !== null && (!Number.isInteger(n) || n <= 0 || n > 100)) throw new Error("invalid count");
+    return { type: t, kw: k, count: n };
+  });
+}
+
+async function readJson(request: Request): Promise<Record<string, unknown>> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    throw new Error("invalid JSON body");
+  }
+  if (typeof body !== "object" || body === null || Array.isArray(body)) throw new Error("JSON object expected");
+  return body as Record<string, unknown>;
+}
+
+class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+/** ตรวจ rate limit + PIN ของ request เขียน · คืน Response เมื่อไม่ผ่าน */
+async function guardWrite(request: Request, env: Env): Promise<Response | null> {
+  const ok = await consumeWriteQuota(env.DB, clientIp(request));
+  if (!ok) return err(429, "เขียนบ่อยเกินไป ลองใหม่ภายหลัง (จำกัด 30 ครั้ง/ชั่วโมง)");
+  if (!checkPin(request, env)) return err(401, "PIN ไม่ถูกต้อง");
+  return null;
+}
+
+// ---------- handlers ----------
+
+async function listStations(url: URL, env: Env): Promise<Response> {
+  const parts = (url.searchParams.get("bbox") ?? "").split(",").map((p) => (p.trim() === "" ? NaN : Number(p)));
+  if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return err(400, "bbox=minLng,minLat,maxLng,maxLat required");
+  const [minLng, minLat, maxLng, maxLat] = parts;
+  if (minLng >= maxLng || minLat >= maxLat || Math.abs(minLat) > 90 || Math.abs(maxLat) > 90 || Math.abs(minLng) > 180 || Math.abs(maxLng) > 180) {
+    return err(400, "invalid bbox");
+  }
+  const cLat = (minLat + maxLat) / 2;
+  const cLng = (minLng + maxLng) / 2;
+  const { results } = await env.DB
+    .prepare(
+      `${SELECT_STATION}
+       WHERE s.deleted = 0 AND s.lat BETWEEN ? AND ? AND s.lng BETWEEN ? AND ?
+       ORDER BY ((s.lat - ?) * (s.lat - ?) + (s.lng - ?) * (s.lng - ?)) ASC
+       LIMIT ?`,
+    )
+    .bind(minLat, maxLat, minLng, maxLng, cLat, cLat, cLng, cLng, MAX_BBOX_RESULTS + 1)
+    .all<StationRow>();
+  const truncated = results.length > MAX_BBOX_RESULTS;
+  const stations = results.slice(0, MAX_BBOX_RESULTS).map(toDto);
+  return json({ stations, count: stations.length, truncated });
+}
+
+async function getStationRow(env: Env, id: string): Promise<StationRow | null> {
+  return env.DB.prepare(`${SELECT_STATION} WHERE s.id = ? AND s.deleted = 0`).bind(id).first<StationRow>();
+}
+
+async function createStation(request: Request, env: Env): Promise<Response> {
+  const body = await readJson(request);
+  const name = str(body.name, 200);
+  if (!name) throw new HttpError(400, "name required");
+  const lat = Number(body.lat);
+  const lng = Number(body.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    throw new HttpError(400, "invalid lat/lng");
+  }
+  const connectors = body.connectors === undefined ? [] : sanitizeConnectors(body.connectors);
+  const opInput = str(body.operator, 100) ?? null;
+  const op = normalizeProvider(opInput);
+  const createdBy = str(body.created_by, 100) ?? null;
+  const id = `user:${crypto.randomUUID()}`;
+  await env.DB
+    .prepare(
+      `INSERT INTO stations (id, source, name, name_en, address, hours, operator, operator_raw, lat, lng, connectors_json, raw_json, updated_at)
+       VALUES (?, 'user', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      id, name, str(body.name_en, 200) ?? null, str(body.address, 500) ?? null, str(body.hours, 200) ?? null,
+      op.operator, opInput ?? "", lat, lng, JSON.stringify(connectors), JSON.stringify({ created_by: createdBy }),
+      new Date().toISOString(),
+    )
+    .run();
+  const row = await getStationRow(env, id);
+  return json(toDto(row!), 201);
+}
+
+async function patchStation(request: Request, env: Env, id: string): Promise<Response> {
+  const existing = await getStationRow(env, id);
+  if (!existing) return err(404, "ไม่พบจุดชาร์จ");
+  const body = await readJson(request);
+  const name = str(body.name, 200);
+  const operatorIn = str(body.operator, 100);
+  const connectors = body.connectors === undefined ? undefined : sanitizeConnectors(body.connectors);
+  if (name === undefined && operatorIn === undefined && connectors === undefined) {
+    throw new HttpError(400, "nothing to update (name / operator / connectors)");
+  }
+  // operator: ถ้าตรงกับ alias ใช้ชื่อมาตรฐาน ไม่งั้นเก็บตามที่พิมพ์
+  const operator = operatorIn === undefined ? undefined : operatorIn === null ? null : (lookupOperator(operatorIn)?.name ?? operatorIn);
+  const editedBy = str(body.edited_by, 100) ?? null;
+  const now = new Date().toISOString();
+  // ฟิลด์ที่ไม่ส่งมา = คงค่า override เดิม (COALESCE กับแถวเดิม)
+  await env.DB
+    .prepare(
+      `INSERT INTO station_overrides (station_id, name, operator, connectors_json, edited_by, edited_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+       ON CONFLICT(station_id) DO UPDATE SET
+         name = CASE WHEN ?7 THEN ?2 ELSE station_overrides.name END,
+         operator = CASE WHEN ?8 THEN ?3 ELSE station_overrides.operator END,
+         connectors_json = CASE WHEN ?9 THEN ?4 ELSE station_overrides.connectors_json END,
+         edited_by = ?5, edited_at = ?6`,
+    )
+    .bind(
+      id, name ?? null, operator ?? null, connectors === undefined ? null : JSON.stringify(connectors), editedBy, now,
+      name !== undefined ? 1 : 0, operator !== undefined ? 1 : 0, connectors !== undefined ? 1 : 0,
+    )
+    .run();
+  const row = await getStationRow(env, id);
+  return json(toDto(row!));
+}
+
+async function deleteStation(request: Request, env: Env, id: string): Promise<Response> {
+  const row = await env.DB.prepare("SELECT id, source, deleted FROM stations WHERE id = ?").bind(id).first<{ id: string; source: string; deleted: number }>();
+  if (!row || row.deleted === 1) return err(404, "ไม่พบจุดชาร์จ");
+  if (row.source !== "user") return err(403, "ลบได้เฉพาะจุดที่ทีมเพิ่มเอง");
+  let by: string | null = null;
+  try {
+    const b = await request.json<Record<string, unknown>>();
+    by = typeof b?.deleted_by === "string" ? b.deleted_by.trim().slice(0, 100) || null : null;
+  } catch {
+    /* body ไม่บังคับ */
+  }
+  await env.DB
+    .prepare("UPDATE stations SET deleted = 1, deleted_by = ?, deleted_at = ? WHERE id = ?")
+    .bind(by, new Date().toISOString(), id)
+    .run();
+  return json({ ok: true, id });
+}
+
+async function route(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const { pathname } = url;
+  const method = request.method;
+
+  if (pathname === "/api/stations") {
+    if (method === "GET") return listStations(url, env);
+    if (method === "POST") {
+      const denied = await guardWrite(request, env);
+      return denied ?? createStation(request, env);
+    }
+    return err(405, "method not allowed");
+  }
+
+  const m = /^\/api\/stations\/(.+)$/.exec(pathname);
+  if (m) {
+    let id: string;
+    try {
+      id = decodeURIComponent(m[1]);
+    } catch {
+      return err(400, "bad id");
+    }
+    if (method === "GET") {
+      const row = await getStationRow(env, id);
+      return row ? json(toDto(row)) : err(404, "ไม่พบจุดชาร์จ");
+    }
+    if (method === "PATCH" || method === "DELETE") {
+      const denied = await guardWrite(request, env);
+      if (denied) return denied;
+      return method === "PATCH" ? patchStation(request, env, id) : deleteStation(request, env, id);
+    }
+    return err(405, "method not allowed");
+  }
+
+  if (pathname === "/api/admin/sync") {
+    if (method !== "POST") return err(405, "method not allowed");
+    const denied = await guardWrite(request, env);
+    if (denied) return denied;
+    const result = await syncMyMaps(env);
+    return json(result, result.ok ? 200 : 502);
+  }
+
+  if (pathname.startsWith("/api/")) return err(404, "not found");
+  return new Response("Not found", { status: 404 });
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    try {
+      return await route(request, env);
+    } catch (e) {
+      if (e instanceof HttpError) return err(e.status, e.message);
+      if (e instanceof Error && /^(expected|string too long|invalid|connectors|JSON)/.test(e.message)) return err(400, e.message);
+      console.error("unhandled", e);
+      return err(500, "internal error");
+    }
+  },
+
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(
+      syncMyMaps(env).then((r) => {
+        if (r.ok) console.log("sync ok", JSON.stringify(r));
+        else console.error("sync failed", r.error);
+      }),
+    );
+  },
+} satisfies ExportedHandler<Env>;

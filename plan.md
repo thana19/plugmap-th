@@ -1,0 +1,33 @@
+# plan.md — EV-Charger Map
+
+อัปเดตล่าสุด: 2026-10-26 11:20
+
+## ทำแล้ว
+
+| เวลา | ขั้นตอน |
+|---|---|
+| 2026-10-26 07:30 | Phase 0 spike: OCM (ไม่มี key) · OSM 307 จุด · Google Places (403) -> `TESTING.md` |
+| 2026-10-26 09:55 | เปลี่ยนแหล่งข้อมูลเป็น Google My Maps KML 3,007 จุด DC (ADR 0002) |
+| 2026-10-26 10:20 | โลโก้ยี่ห้อ 14 ยี่ห้อ `public/logos/` (ADR 0003) |
+| 2026-10-26 10:30 | MVP implement: Worker + D1 + Leaflet PWA, ทดสอบ 85/85 |
+| 2026-10-26 10:58 | UAT https://ev-uat.thana.in.th พร้อม sync 3,007 จุด |
+| 2026-10-26 11:16 | PRD https://ev.thana.in.th ขึ้น (หลังพี่หนุ่มลบ DNS record `ev` เดิม) |
+| 2026-10-26 11:2x | git push -> github.com/thana19/plugmap-th (public) |
+
+## ขั้นต่อไป
+
+1. พี่หนุ่มตั้ง TEAM_PIN production + sync ครั้งแรก (ตอนนี้ PRD ยังว่าง 0 จุด)
+2. ทดสอบบนมือถือจริง: เพิ่ม/แก้/ลบจุด · แชร์ · ปฏิเสธ GPS · กดค้างบนแผนที่ · ติดตั้ง PWA
+3. ตรวจ cron ตี 2 คืนแรก (UAT + PRD)
+
+## Phase 2
+
+- สถานะ ว่าง/ไม่ว่าง (Report + TTL)
+- จุด AC จาก OSM / OCM (ถ้าได้ API key)
+- Google Places (evChargeOptions) — ต้องแสดงบน Google Map
+- หน้า admin แสดง override ที่กำพร้า (orphan)
+- ค้นหา
+
+## ก่อนเปิดสาธารณะ
+
+ขออนุญาตผู้รวบรวม My Maps และตรวจการใช้โลโก้ (เครื่องหมายการค้า) ถ้าจะเปิดให้คนทั่วไปใช้จริงจัง (ADR 0002 / 0003)

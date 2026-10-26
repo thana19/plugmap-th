@@ -1,0 +1,40 @@
+{
+  // EV-Charger Map — Worker + D1 + Static Assets
+  // Top-level = local dev only. ห้าม deploy จาก top-level; ใช้ --env uat / --env production (ต้องได้รับอนุญาตจากพี่หนุ่มก่อน)
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ev-charger-local",
+  // ล็อก account — zone thana.in.th อยู่ account Thana.j (เหมือน second-brain) กัน deploy ผิด account
+  "account_id": "1c6aa5eefae9b6dffd67e28718a1d7c9",
+  "main": "worker/src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "./public"
+    // request ที่ไม่ตรงไฟล์ใน public/ (เช่น /api/*) จะตกมาที่ Worker
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "ev-charger-local", "database_id": "local-dev-only" }
+  ],
+  "triggers": { "crons": ["0 19 * * *"] },
+
+  // TEAM_PIN เป็น secret: local ใส่ใน .dev.vars (ไม่ commit), deploy ใช้ `wrangler secret put TEAM_PIN --env <env>`
+  "env": {
+    "uat": {
+      "name": "ev-charger-uat",
+      "routes": [{ "pattern": "ev-uat.thana.in.th", "custom_domain": true }],
+      "assets": { "directory": "./public" },
+      "d1_databases": [
+        { "binding": "DB", "database_name": "ev-charger-uat", "database_id": "361492af-9612-49a7-830f-26ada3f2c0c9" }
+      ],
+      "triggers": { "crons": ["0 19 * * *"] }
+    },
+    "production": {
+      "name": "ev-charger",
+      "routes": [{ "pattern": "ev.thana.in.th", "custom_domain": true }],
+      "assets": { "directory": "./public" },
+      "d1_databases": [
+        { "binding": "DB", "database_name": "ev-charger-prd", "database_id": "df4eb674-ed5c-4814-907d-8a62d1b25592" }
+      ],
+      "triggers": { "crons": ["0 19 * * *"] }
+    }
+  }
+}
