@@ -278,8 +278,8 @@
     const kwSel = h("select", { "aria-label": "kW ขั้นต่ำ", onchange: (e) => { filters.minKw = Number(e.target.value); applyFilters(); } },
       [[0, "ทุกกำลังไฟ"], [7, "7 kW ขึ้นไป"], [22, "22 kW ขึ้นไป"], [50, "50 kW ขึ้นไป (DC เร็ว)"], [100, "100 kW ขึ้นไป"], [150, "150 kW ขึ้นไป"]]
         .map(([v, t]) => h("option", { value: v, selected: filters.minKw === v }, t)));
-    const hubChip = chip("Hub (สถานีชาร์จขนาดใหญ่)", !!filters.hub, () => { filters.hub = !filters.hub; loadViewport(); });
-    const bmChip = chip("★ เฉพาะที่บันทึกไว้", !!filters.bookmarked, () => { filters.bookmarked = !filters.bookmarked; loadViewport(); });
+    const hubChip = chip("Hub (สถานีชาร์จขนาดใหญ่)", !!filters.hub, () => { filters.hub = !filters.hub; loadViewport({ fit: filters.hub }); });
+    const bmChip = chip("★ เฉพาะที่บันทึกไว้", !!filters.bookmarked, () => { filters.bookmarked = !filters.bookmarked; loadViewport({ fit: filters.bookmarked }); });
     panel.append(
       h("h3", { text: "ประเภทสถานี" }), h("div", { class: "chips" }, [hubChip, bmChip]),
       h("h3", { text: "ยี่ห้อ" }), h("div", { class: "chips" }, opChips),
@@ -515,7 +515,8 @@
     for (const e of entries.values()) if (e.shown && b.contains(e.marker.getLatLng())) shown++;
     setStatus(`พบ ${shown.toLocaleString("th-TH")} จุดในหน้าจอ${lastLoad.truncated ? " (ซูมเข้าเพื่อดูเพิ่ม)" : ""}`);
   }
-  async function loadViewport() {
+  /** fit: ซูมให้เห็นทุกจุดที่ผ่านตัวกรองหลังโหลดเสร็จ (ใช้ตอนเพิ่งเปิดโหมด Hub/bookmark) */
+  async function loadViewport({ fit = false } = {}) {
     const mode = loadMode();
     const special = !!mode;
     if (!special && map.getZoom() < MIN_FETCH_ZOOM) { loadCtl?.abort(); lastLoad.tooFar = true; lastLoad.loading = false; updateStatus(); return; }
@@ -537,6 +538,10 @@
       if (entries.size > MAX_CACHED) trimCache();
       lastLoad = { count: data.count, truncated: !!data.truncated, tooFar: false, loading: false, mode };
       updateStatus();
+      if (fit && special) {
+        const pts = data.stations.filter(passes).map((st) => [st.lat, st.lng]);
+        if (pts.length) map.flyToBounds(L.latLngBounds(pts), { padding: [48, 48], maxZoom: 14 });
+      }
     } catch (e) {
       if (e.name === "AbortError") return;
       lastLoad.loading = false;

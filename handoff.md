@@ -1,6 +1,6 @@
 # handoff.md — EV-Charger Map
 
-อัปเดตล่าสุด: 2026-10-26 18:00
+อัปเดตล่าสุด: 2026-10-27 07:00
 
 ## สถานะปัจจุบัน
 
@@ -41,6 +41,7 @@ MVP + Hub filter + Bookmark + ค้นหา ขึ้นครบทั้ง 
 - 2026-10-26 13:25 UAT Hub filter (version e1418561) · 14:30 PRD (version 0c859fed) -> `TESTING.md` หัวข้อ `Hub filter`
 - 2026-10-26 17:54 UAT Bookmark + ค้นหา (version c98eecb3) · 18:00 PRD (version 3ab09a72) -> `TESTING.md` หัวข้อ `Bookmark + ค้นหา`
 - D1 migrate `schema.sql` (ตาราง `bookmarks`) --remote ทำแล้วทั้ง UAT และ PRD
+- 2026-10-27 07:00 ซูมไปที่ Hub/bookmark ตอนเปิดตัวกรอง: UAT (version 320bdde6) · PRD (version 74226f46) · sw `ev-shell-v5`
 
 ## Hub filter (2026-10-26)
 
@@ -48,7 +49,7 @@ MVP + Hub filter + Bookmark + ค้นหา ขึ้นครบทั้ง 
 - API: ทุก station มี `hub: boolean` · `GET /api/stations?hub=1` คืน Hub ทั้งประเทศ (bbox ใส่หรือไม่ก็ได้)
 - Frontend: ตัวกรองหมวด "ประเภทสถานี" chip Hub · โหมด Hub ไม่สนซูมขั้นต่ำ · bottom sheet มีป้าย "Hub" · sw cache `ev-shell-v2` · ทดสอบ 96/96
 - commit: ดู `git log` (feat: hub filter)
-- ปัญหาเล็กที่ทราบ: (1) ~~แถบสถานะขึ้น "พบ Hub 0 จุด" ชั่วครู่~~ — แก้แล้วใน 2026-10-26 17:54 (2) เปิด Hub ตอนซูมอยู่ในกรุงเทพจะไม่เห็นอะไรจนกว่าจะซูมออก — ปรับปรุงได้: `fitBounds` ไปที่ Hub ทั้งหมดตอนเปิด
+- ปัญหาเล็กที่ทราบ: (1) ~~แถบสถานะขึ้น "พบ Hub 0 จุด" ชั่วครู่~~ — แก้แล้วใน 2026-10-26 17:54 (2) ~~เปิด Hub ตอนซูมอยู่ในกรุงเทพจะไม่เห็นอะไร~~ — แก้แล้ว 2026-10-27 07:00: เปิด Hub/★ แล้ว `flyToBounds` ไปที่จุดทั้งหมด
 
 ## Bookmark + ค้นหา (2026-10-26)
 
@@ -74,7 +75,7 @@ MVP + Hub filter + Bookmark + ค้นหา ขึ้นครบทั้ง 
 
 ## Next steps
 
-ดู `plan.md` — (1) พี่หนุ่มทดสอบ Bookmark ด้วย PIN จริงบนมือถือ (2) ตรวจ cron ตี 2 คืนแรก (`SELECT MAX(updated_at)` บน D1 PRD) (3) ทดสอบมือถือจริงที่เหลือ (Known gaps) (4) ตัวเลือก: `fitBounds` ไปที่ Hub ตอนเปิดตัวกรอง (5) Phase 2 · แนะนำเปลี่ยน TEAM_PIN ถ้าภาพหน้าจอที่มี PIN ถูกส่งต่อ
+ดู `plan.md` — (1) พี่หนุ่มทดสอบ Bookmark ด้วย PIN จริงบนมือถือ (2) ตรวจ cron ตี 2 คืนแรก (`SELECT MAX(updated_at)` บน D1 PRD) (3) ทดสอบมือถือจริงที่เหลือ (Known gaps) (5) Phase 2 · แนะนำเปลี่ยน TEAM_PIN ถ้าภาพหน้าจอที่มี PIN ถูกส่งต่อ
 
 ## Suggested Skills (session ถัดไป)
 

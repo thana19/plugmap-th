@@ -206,3 +206,15 @@ Pending:
 | sw.js cache `ev-shell-v4` | ✅ |
 | UI บน PRD | ⚠️ ยังไม่ได้ตรวจด้วยตา (โค้ดชุดเดียวกับ UAT · DNS ในเครื่อง cache) |
 | บันทึก bookmark จริงด้วย PIN จริง | ⏳ รอพี่หนุ่มทดสอบบนมือถือ |
+
+## [2026-10-27 07:00] ซูมไปที่ Hub/bookmark ตอนเปิดตัวกรอง — local + UAT + PRD
+
+| รายการ | ผล |
+|---|---|
+| vitest | ✅ 116/116 |
+| local 390×844: อยู่กรุงเทพ → เปิด Hub → flyToBounds เห็น Hub ทั้งประเทศ "พบ Hub 12 จุด" | ✅ |
+| deploy UAT (version 320bdde6) · sw `ev-shell-v5` | ✅ |
+| UAT 390×844: เปิด Hub → หมุด/cluster ทั้ง 7 อยู่ในจอ | ✅ |
+| deploy PRD (version 74226f46) · sw `ev-shell-v5` · app.js มี flyToBounds | ✅ |
+
+หมายเหตุ: ใช้กับ chip "★ เฉพาะที่บันทึกไว้" ด้วย · ปิดตัวกรอง / เปิดแอปที่มีตัวกรองค้างไว้ = ไม่ซูม · maxZoom 14
