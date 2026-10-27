@@ -1,6 +1,6 @@
 # handoff.md — EV-Charger Map
 
-อัปเดตล่าสุด: 2026-10-27 07:00
+อัปเดตล่าสุด: 2026-10-27 12:20
 
 ## สถานะปัจจุบัน
 
@@ -71,11 +71,12 @@ MVP + Hub filter + Bookmark + ค้นหา + ซูมไปที่ Hub/boo
 - แผนหลัก: `~/.claude/plans/explore-quirky-finch.md`
 - HTML plan: `html-plan/ev-charger-plan-2026-10-26_*.html` · `html-plan/ev-charger-bookmark-2026-10-26_1445.html` · `html-plan/ev-charger-search-2026-10-26_1450.html`
 - ข้อมูลดิบ spike (ไม่ commit): `spike/`
+- ภาพหน้าจอ README: `docs/screenshots/01-map … 06-add.jpg` (ถ่ายจาก PRD 390×844 · 2026-10-27 07:25) · README มีหัวข้อ "ตัวอย่างหน้าจอ" + "วิธีใช้งาน" 8 ขั้น (commit `41fb2b2`) · ยังไม่มีภาพแผง ★ (ตอนถ่ายยังไม่มี Bookmark) — ถ่ายเพิ่มได้หลังทีมบันทึกจุดจริง · ถ่ายใหม่เมื่อ UI เปลี่ยน (ห้ามมี PIN ในภาพ)
 - โลโก้ + ที่มา: `public/logos/logos.json`
 
 ## Next steps
 
-ดู `plan.md` — (1) พี่หนุ่มทดสอบ Bookmark ด้วย PIN จริงบนมือถือ (2) ทดสอบมือถือจริงที่เหลือ (Known gaps) (3) Phase 2 · แนะนำเปลี่ยน TEAM_PIN ถ้าภาพหน้าจอที่มี PIN ถูกส่งต่อ
+ดู `plan.md` — (1) พี่หนุ่มทดสอบ Bookmark ด้วย PIN จริงบนมือถือ (2) ทดสอบมือถือจริงที่เหลือ (Known gaps) (3) เพิ่มภาพแผง ★ ใน README หลังมี Bookmark จริง (4) Phase 2 · แนะนำเปลี่ยน TEAM_PIN ถ้าภาพหน้าจอที่มี PIN ถูกส่งต่อ
 
 ## Suggested Skills (session ถัดไป)
 
